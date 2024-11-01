@@ -1,0 +1,52 @@
+#chessboard {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  border: 1px solid #333333;
+}
+
+.square {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.black {
+  background-color: #926644;
+}
+
+.white {
+  background-color: #edeae0;
+}
+
+.piece {
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+}
+
+.highlight-circle {
+  width: 40%;
+  height: 40%;
+  border-radius: 50%;
+  background-color: rgba(42, 48, 42, 0.3);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.selected-square {
+  background-color: #faca16;
+}
+
+.coords {
+  position: absolute; /* Adjust as needed */
+  color: rgba(0, 0, 0, 0.5); /* A light color for better readability */
+  font-size: 10px; /* Smaller size to differentiate from chess pieces */
+  bottom: 2px; /* Position at the bottom */
+  right: 2px; /* Position at the right */
+}
