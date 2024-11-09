@@ -2,12 +2,25 @@
 const WHITE = 'w'
 const BLACK = 'b'
 
+const PIECE_TYPES = {
+  KING: 'K',
+  QUEEN: 'Q',
+  ROOK: 'R',
+  BISHOP: 'B',
+  KNIGHT: 'N',
+  PAWN: 'P',
+}
+
 class ChessGame {
   constructor(fenNotation) {
     const [board, playerTurn] = fenNotation.split(' ')
     this.currentPlayerTurn = playerTurn
     this.board = this.initializeBoard(board)
     this.enPassantTarget = null // Initialize en-passant target
+    this.boardHistory = [] // To track board position history
+    this.isDrawByRepetition = false // To track if a draw by repetition occurred
+    this.repetitionCountTwoTracker = 0
+    this.fiftyMoveCounter = 0 // Initialize fifty-move counter
 
     // Use an object to encapsulate the state of various pieces
     this.pieceMovedStatus = {
@@ -34,9 +47,6 @@ class ChessGame {
         }
       }
     })
-
-    console.log(this.currentPlayerTurn)
-
     return chessBoard
   }
 
@@ -84,7 +94,6 @@ class ChessGame {
   }
 
   isOnBoard(position) {
-    // Must be an array of two numbers
     return (
       Array.isArray(position) &&
       position.length === 2 &&
@@ -96,9 +105,7 @@ class ChessGame {
   }
 
   getStepDirection([startX, startY], [endX, endY]) {
-    const deltaX = Math.sign(endX - startX)
-    const deltaY = Math.sign(endY - startY)
-    return [deltaX, deltaY]
+    return [Math.sign(endX - startX), Math.sign(endY - startY)]
   }
 
   isValidBishopMove(start, end) {
@@ -122,69 +129,94 @@ class ChessGame {
   }
 
   isValidPawnMove([startX, startY], [endX, endY]) {
-    const direction = this.getPiece(startX, startY) === 'P' ? -1 : 1 // White up (-1), Black down (+1)
+    const direction =
+      this.getPiece(startX, startY) === PIECE_TYPES.PAWN ? -1 : 1 // White up (-1), Black down (+1)
     const targetPiece = this.getPiece(endX, endY)
 
-    // En-passant capture
-    if (
+    return (
+      this.handlePawnSingleMove(
+        startX,
+        startY,
+        endX,
+        endY,
+        targetPiece,
+        direction,
+      ) ||
+      this.handlePawnDoubleMove(
+        startX,
+        startY,
+        endX,
+        endY,
+        targetPiece,
+        direction,
+      ) ||
+      this.handleEnPassant(
+        startX,
+        startY,
+        endX,
+        endY,
+        targetPiece,
+        direction,
+      ) ||
+      this.handlePawnCaptureMove(
+        startX,
+        startY,
+        endX,
+        endY,
+        targetPiece,
+        direction,
+      )
+    )
+  }
+
+  handleEnPassant(startX, startY, endX, endY, targetPiece, direction) {
+    return (
       this.enPassantTarget &&
       this.enPassantTarget[0] === endX &&
-      this.enPassantTarget[1] === endY
-    ) {
-      const nextRow = startX + direction
-      return (
-        targetPiece === null &&
-        endX === nextRow &&
-        Math.abs(endY - startY) === 1
-      )
-    }
-
-    // Single move forward
-    if (
+      this.enPassantTarget[1] === endY &&
+      targetPiece === null &&
       endX === startX + direction &&
-      endY === startY &&
-      targetPiece === null
-    ) {
-      return true
-    }
+      Math.abs(endY - startY) === 1
+    )
+  }
 
-    // Capture move (diagonal)
-    if (endX === startX + direction && Math.abs(endY - startY) === 1) {
-      return (
-        targetPiece !== null &&
-        this.getPieceColor(targetPiece) !==
-          this.getPieceColor(this.getPiece(startX, startY))
-      )
-    }
+  handlePawnSingleMove(startX, startY, endX, endY, targetPiece, direction) {
+    return (
+      endX === startX + direction && endY === startY && targetPiece === null
+    )
+  }
 
-    // Double move
-    if (
+  handlePawnCaptureMove(startX, startY, endX, endY, targetPiece, direction) {
+    return (
+      endX === startX + direction &&
+      Math.abs(endY - startY) === 1 &&
+      targetPiece !== null &&
+      this.getPieceColor(targetPiece) !==
+        this.getPieceColor(this.getPiece(startX, startY))
+    )
+  }
+
+  handlePawnDoubleMove(startX, startY, endX, endY, targetPiece, direction) {
+    return (
       endX === startX + 2 * direction &&
       endY === startY &&
       targetPiece === null &&
       this.board[startX + direction][startY] === null &&
       startX === (direction === -1 ? 6 : 1)
-    ) {
-      return true
-    }
-
-    return false // Invalid move
+    )
   }
 
   promotePawn(position) {
     const piece = this.getPiece(position[0], position[1])
-    if (
-      piece.toLowerCase() === 'p' &&
+    return (
+      piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() &&
       (position[0] === 0 || position[0] === 7)
-    ) {
-      return true // Promotion is valid
-    }
-    return false
+    )
   }
 
-  findPiecePosition(pieceName, playerColor) {
+  getPiecePosition(pieceName, playerColor) {
     const piece =
-      playerColor === WHITE ? pieceName.toUpperCase() : pieceName.toLowerCase() // Determine the piece by color
+      playerColor === WHITE ? pieceName.toUpperCase() : pieceName.toLowerCase()
     for (let x = 0; x < 8; x++) {
       for (let y = 0; y < 8; y++) {
         if (this.getPiece(x, y) === piece) {
@@ -192,14 +224,16 @@ class ChessGame {
         }
       }
     }
-    return null // Piece not found, should not happen in a valid game
+    return null // Piece not found
   }
 
-  isValidKingMove([startX, startY], [endX, endY]) {
-    const deltaX = Math.abs(startX - endX)
-    const deltaY = Math.abs(startY - endY)
-    const targetPiece = this.getPiece(endX, endY)
-    const currentPieceColor = this.getPieceColor(this.getPiece(startX, startY))
+  isValidKingMove(start, end) {
+    const deltaX = Math.abs(start[0] - end[0])
+    const deltaY = Math.abs(start[1] - end[1])
+    const targetPiece = this.getPiece(end[0], end[1])
+    const currentPieceColor = this.getPieceColor(
+      this.getPiece(start[0], start[1]),
+    )
     const targetPieceColor = targetPiece
       ? this.getPieceColor(targetPiece)
       : null
@@ -207,7 +241,7 @@ class ChessGame {
     return (
       deltaX <= 1 &&
       deltaY <= 1 && // Move one square in any direction
-      (targetPiece === null || targetPieceColor !== currentPieceColor) // Check if target space is empty or occupied by an enemy piece
+      (targetPiece === null || targetPieceColor !== currentPieceColor) // Target square empty or occupied by an enemy piece
     )
   }
 
@@ -224,32 +258,37 @@ class ChessGame {
         }
       }
     }
-
     return false
   }
 
   canCastleKingside() {
-    const playerColor = this.currentPlayerTurn === WHITE ? 'white' : 'black'
-    return (
-      !this.pieceMovedStatus[`${playerColor}King`] && // King has not moved
-      !this.pieceMovedStatus[`${playerColor}KingsideRook`] && // Rook has not moved
-      this.isPathClear(
-        [this.getRowForColor(this.currentPlayerTurn), 4],
-        [this.getRowForColor(this.currentPlayerTurn), 6],
-      ) // The path between king and rook must be clear
-    )
+    return this.canCastle('kingside', this.currentPlayerTurn)
   }
 
   canCastleQueenside() {
-    const playerColor = this.currentPlayerTurn === WHITE ? 'white' : 'black'
-    return (
-      !this.pieceMovedStatus[`${playerColor}King`] && // King has not moved
-      !this.pieceMovedStatus[`${playerColor}QueensideRook`] && // Rook has not moved
-      this.isPathClear(
-        [this.getRowForColor(this.currentPlayerTurn), 4],
-        [this.getRowForColor(this.currentPlayerTurn), 2],
-      ) // The path between king and rook must be clear
-    )
+    return this.canCastle('queenside', this.currentPlayerTurn)
+  }
+
+  canCastle(side, playerColor) {
+    const row = this.getRowForColor(playerColor)
+
+    // Check if the king and rook have moved
+    const kingMoved =
+      this.pieceMovedStatus[`${playerColor === WHITE ? 'white' : 'black'}King`]
+    const rookMoved =
+      this.pieceMovedStatus[
+        `${playerColor}${
+          side === 'kingside' ? 'KingsideRook' : 'QueensideRook'
+        }`
+      ]
+
+    // Check if the path for castling is clear
+    const pathClear =
+      side === 'kingside'
+        ? this.isPathClear([row, 4], [row, 6]) // Check path for kingside castling
+        : this.isPathClear([row, 0], [row, 4]) // Check path for queenside castling
+
+    return !kingMoved && !rookMoved && pathClear // Return true if neither piece has moved and the path is clear
   }
 
   getRowForColor(color) {
@@ -258,73 +297,108 @@ class ChessGame {
 
   isCastlingMove(start, end) {
     const piece = this.getPiece(start[0], start[1])
-
-    // Check if the piece is a king and if the target position is valid for castling
-    if (
-      (piece && piece.toLowerCase() === 'k') ||
-      (piece && piece.toUpperCase() === 'K')
-    ) {
-      if (
-        (start[0] === this.getRowForColor(WHITE) &&
-          start[1] === 4 &&
-          end[0] === this.getRowForColor(WHITE) &&
-          end[1] === 6) ||
-        (start[0] === this.getRowForColor(BLACK) &&
-          start[1] === 4 &&
-          end[0] === this.getRowForColor(BLACK) &&
-          end[1] === 6)
-      ) {
-        return 'kingside' // Kingside castling
-      }
-
-      if (
-        (start[0] === this.getRowForColor(WHITE) &&
-          start[1] === 4 &&
-          end[0] === this.getRowForColor(WHITE) &&
-          end[1] === 2) ||
-        (start[0] === this.getRowForColor(BLACK) &&
-          start[1] === 4 &&
-          end[0] === this.getRowForColor(BLACK) &&
-          end[1] === 2)
-      ) {
-        return 'queenside' // Queenside castling
+    if (piece && [PIECE_TYPES.KING].includes(piece.toUpperCase())) {
+      const row = this.getRowForColor(this.currentPlayerTurn)
+      if (start[0] === row && start[1] === 4) {
+        if (end[0] === row && end[1] === 6) {
+          return 'kingside' // Kingside castling
+        }
+        if (end[0] === row && end[1] === 2) {
+          return 'queenside' // Queenside castling
+        }
       }
     }
-
     return null // Not a castling move
   }
 
   castle(start, end) {
-    const row = this.getRowForColor(this.currentPlayerTurn) // Get the row for the current player
-    const castlingType = this.isCastlingMove(start, end) // Determine if it's a kingside or queenside castling
+    // Check if King is in check before allowing castling
+    const kingPosition = this.getPiecePosition(
+      PIECE_TYPES.KING,
+      this.currentPlayerTurn,
+    )
+    if (this.isSquareAttacked(kingPosition)) return // If King is in check, abort castling
 
+    const castlingType = this.isCastlingMove(start, end)
     if (!castlingType) return // Exit if not a castling move
 
+    const row = this.getRowForColor(this.currentPlayerTurn)
     const kingInitialPosition = [row, 4]
     const rookInitialPosition =
       castlingType === 'kingside' ? [row, 7] : [row, 0]
-    const kingNewPosition = castlingType === 'kingside' ? [row, 6] : [row, 2]
+    const kingNewPosition1 = castlingType === 'kingside' ? [row, 6] : [row, 2] // final square
+    const kingNewPosition2 = castlingType === 'kingside' ? [row, 5] : [row, 3] // square beside the king
     const rookNewPosition = castlingType === 'kingside' ? [row, 5] : [row, 3]
 
-    const king = this.getPiece(...kingInitialPosition) // Get the King
-    const rook = this.getPiece(...rookInitialPosition) // Get the Rook
+    const king = this.getPiece(...kingInitialPosition)
+    const rook = this.getPiece(...rookInitialPosition)
 
-    // Check if the castling move is valid
-    if (!this.canCastleKingside() && castlingType === 'kingside') {
-      return // Exit if kingside castling is not possible
+    const isKingSafe1 = this.performTemporaryMovesAndCheckSafety(
+      king,
+      rook,
+      kingInitialPosition,
+      rookInitialPosition,
+      kingNewPosition1,
+      rookNewPosition,
+    )
+
+    const isKingSafe2 = this.performTemporaryMovesAndCheckSafety(
+      king,
+      rook,
+      kingInitialPosition,
+      rookInitialPosition,
+      kingNewPosition2,
+      rookNewPosition,
+    )
+
+    // If the King's new position is not safe, abort castling
+    if (!isKingSafe1 && !isKingSafe2) return
+
+    // Check specific path clearance for Kingside castling
+    if (castlingType === 'kingside' && this.canCastleKingside()) {
+      this.finalizeCastling(
+        castlingType,
+        king,
+        rook,
+        kingInitialPosition,
+        rookInitialPosition,
+        kingNewPosition1,
+        rookNewPosition,
+      )
+      this.switchTurn()
+      return
     }
 
-    if (!this.canCastleQueenside() && castlingType === 'queenside') {
-      return // Exit if queenside castling is not possible
+    // Check specific path clearance for Queenside castling
+    if (castlingType === 'queenside' && this.canCastleQueenside()) {
+      this.finalizeCastling(
+        castlingType,
+        king,
+        rook,
+        kingInitialPosition,
+        rookInitialPosition,
+        kingNewPosition1,
+        rookNewPosition,
+      )
+      this.switchTurn()
+      return
     }
+  }
 
+  performTemporaryMovesAndCheckSafety(
+    king,
+    rook,
+    kingInitialPosition,
+    rookInitialPosition,
+    kingNewPosition,
+    rookNewPosition,
+  ) {
     // Temporarily move pieces to validate the castling path
-    this.setPiece(...kingNewPosition, king) // Move King's new position
-    this.setPiece(...rookNewPosition, rook) // Move Rook's new position
-    this.removePiece(...kingInitialPosition) // Remove King from e1/e8
+    this.setPiece(...kingNewPosition, king) // Move King to new position
+    this.setPiece(...rookNewPosition, rook) // Move Rook to new position
+    this.removePiece(...kingInitialPosition) // Remove King from its initial position
     this.removePiece(...rookInitialPosition) // Remove Rook from its initial position
 
-    // Check if the new positions are attacked
     const kingSafe = !this.isSquareAttacked(kingNewPosition)
 
     // Undo the temporary moves
@@ -333,39 +407,42 @@ class ChessGame {
     this.setPiece(...kingInitialPosition, king) // Restore King to its initial position
     this.setPiece(...rookInitialPosition, rook) // Restore Rook to its initial position
 
-    // If the King’s new position is not safe, abort castling
-    if (!kingSafe) {
-      return
-    }
+    return kingSafe
+  }
 
-    // Proceed with the final castling move
+  finalizeCastling(
+    castlingType,
+    king,
+    rook,
+    kingInitialPosition,
+    rookInitialPosition,
+    kingNewPosition,
+    rookNewPosition,
+  ) {
     this.setPiece(...kingNewPosition, king) // Place King in the new position
     this.setPiece(...rookNewPosition, rook) // Place Rook in the new position
-    this.removePiece(...kingInitialPosition) // Remove King from e1/e8
+    this.removePiece(...kingInitialPosition) // Remove King from its initial position
     this.removePiece(...rookInitialPosition) // Remove Rook from its initial position
 
     // Update the movability status for castling
-    this.updateCastlingMoveStatus(castlingType) // Update king & rook moved status
-    this.switchTurn() // Switch turn after castling
+    this.updateCastlingMoveStatus(castlingType)
   }
 
   updateCastlingMoveStatus(castlingDirection) {
     if (this.currentPlayerTurn === WHITE) {
-      if (castlingDirection === 'kingside') {
-        this.pieceMovedStatus.whiteKing = true
-        this.pieceMovedStatus.whiteKingsideRook = true
-      } else {
-        this.pieceMovedStatus.whiteKing = true
-        this.pieceMovedStatus.whiteQueensideRook = true
-      }
+      this.pieceMovedStatus.whiteKing = true
+      this.pieceMovedStatus[
+        `white${
+          castlingDirection.charAt(0).toUpperCase() + castlingDirection.slice(1)
+        }Rook`
+      ] = true
     } else {
-      if (castlingDirection === 'kingside') {
-        this.pieceMovedStatus.blackKing = true
-        this.pieceMovedStatus.blackKingsideRook = true
-      } else {
-        this.pieceMovedStatus.blackKing = true
-        this.pieceMovedStatus.blackQueensideRook = true
-      }
+      this.pieceMovedStatus.blackKing = true
+      this.pieceMovedStatus[
+        `black${
+          castlingDirection.charAt(0).toUpperCase() + castlingDirection.slice(1)
+        }Rook`
+      ] = true
     }
   }
 
@@ -390,44 +467,46 @@ class ChessGame {
       return false // Invalid move if start or end is off the board
     }
 
-    // Temporarily make the move
     const originalPiece = this.getPiece(start[0], start[1])
     const targetPiece = this.getPiece(end[0], end[1])
 
-    // Ensure there is indeed a piece at start position before attempting the move
     if (originalPiece === null) {
       return false // No piece to move
     }
-    // Execute the move
+
     this.setPiece(end[0], end[1], originalPiece)
     this.removePiece(start[0], start[1])
 
-    // Check if the king is still safe
-    const kingPosition = this.findPiecePosition('K', this.currentPlayerTurn)
+    const kingPosition = this.getPiecePosition(
+      PIECE_TYPES.KING,
+      this.currentPlayerTurn,
+    )
     const isKingSafe = !this.isSquareAttacked(kingPosition)
 
     // Undo the temporary move
     this.setPiece(start[0], start[1], originalPiece)
     this.setPiece(end[0], end[1], targetPiece)
 
-    // If the king is in check after the move, return false
     if (!isKingSafe) {
-      return false
+      return false // King is in check after the move, return false
     }
 
-    // Now validate the specific piece move logic
+    return this.isValidPieceMoveLogic(piece, start, end)
+  }
+
+  isValidPieceMoveLogic(piece, start, end) {
     switch (piece.toLowerCase()) {
-      case 'p':
+      case PIECE_TYPES.PAWN.toLowerCase():
         return this.isValidPawnMove(start, end)
-      case 'r':
+      case PIECE_TYPES.ROOK.toLowerCase():
         return this.isValidRookMove(start, end)
-      case 'n':
+      case PIECE_TYPES.KNIGHT.toLowerCase():
         return this.isValidKnightMove(start, end)
-      case 'b':
+      case PIECE_TYPES.BISHOP.toLowerCase():
         return this.isValidBishopMove(start, end)
-      case 'q':
+      case PIECE_TYPES.QUEEN.toLowerCase():
         return this.isValidQueenMove(start, end)
-      case 'k':
+      case PIECE_TYPES.KING.toLowerCase():
         return this.isValidKingMove(start, end)
       default:
         return false // Invalid piece type
@@ -437,12 +516,11 @@ class ChessGame {
   isValidMove(start, end) {
     const piece = this.getPiece(start[0], start[1])
 
-    // Check if there's a piece in the starting position
     if (piece === null) {
       return false // No piece at start
     }
 
-    const pieceColor = this.getPieceColor(piece) // Determine color of the piece
+    const pieceColor = this.getPieceColor(piece)
 
     if (pieceColor !== this.currentPlayerTurn) {
       return false // Not the piece's turn
@@ -459,6 +537,19 @@ class ChessGame {
     return this.validatePieceMove(piece, start, end)
   }
 
+  calculateMoveDistance(start, end, piece) {
+    if (!this.isOnBoard(start) || !this.isOnBoard(end)) {
+      throw new Error('Start or end position is out of bounds.')
+    }
+
+    const deltaX = Math.abs(end[0] - start[0]) // Difference in rows
+    const deltaY = Math.abs(end[1] - start[1]) // Difference in columns
+
+    const dist = Math.max(deltaX, deltaY)
+
+    return { dist, piece }
+  }
+
   makeMove(start, end) {
     const piece = this.getPiece(start[0], start[1])
     const pieceColor = this.getPieceColor(piece)
@@ -472,50 +563,172 @@ class ChessGame {
       throw new Error('Invalid move!')
     }
 
+    // Track if the move involved a pawn or capture
+    if (
+      piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() ||
+      piece.toUpperCase() === PIECE_TYPES.PAWN.toUpperCase() ||
+      this.getPiece(end[0], end[1]) !== null
+    ) {
+      this.fiftyMoveCounter = 0 // Reset counter on pawn move or capture
+    } else {
+      this.fiftyMoveCounter++ // Increment counter otherwise
+    }
+
+    const boardState = this.getBoardState()
+    this.boardHistory.push(boardState) // Store the current board state in history
+
+    // return if it's castling move
+    if (this.isCastlingMove(start, end)) {
+      return
+    }
+
     // Move the piece
     this.setPiece(end[0], end[1], piece)
     this.removePiece(start[0], start[1])
 
-    // Track if king or rook moves
-    if (piece.toLowerCase() === 'k') {
-      // King moved
-      this.pieceMovedStatus[`${playerColor}King`] = true
-    } else if (piece.toLowerCase() === 'r') {
-      // Rook moved
-      if (pieceColor === WHITE) {
-        if (start[0] === this.getRowForColor(WHITE) && start[1] === 0) {
-          // White Queenside rook
-          this.pieceMovedStatus.whiteQueensideRook = true
-        } else if (start[0] === this.getRowForColor(WHITE) && start[1] === 7) {
-          // White Kingside rook
-          this.pieceMovedStatus.whiteKingsideRook = true
-        }
-      } else {
-        if (start[0] === this.getRowForColor(BLACK) && start[1] === 0) {
-          // Black Queenside rook
-          this.pieceMovedStatus.blackQueensideRook = true
-        } else if (start[0] === this.getRowForColor(BLACK) && start[1] === 7) {
-          // Black Kingside rook
-          this.pieceMovedStatus.blackKingsideRook = true
-        }
-      }
-    }
+    this.trackPieceMovement(piece, playerColor, start)
 
     // Handle en-passant
-    if (piece.toLowerCase() === 'p' && Math.abs(start[0] - end[0]) === 2) {
+    this.handleEnPassantOnMove(piece, start, end)
+
+    // Check for pawn promotion
+    if (this.promotePawn(end)) {
+      this.showPawnPromotionPrompt(end)
+    }
+
+    // Check for 3-fold repetition
+    this.checkThreeFoldRepetition(boardState)
+
+    // Switch turn
+    this.switchTurn()
+  }
+
+  // check if fifty-move rule applies
+  isDrawByFiftyMoveRule() {
+    if (this.fiftyMoveCounter >= 100) {
+      return true // Draw by the fifty-move rule
+    }
+    return false // Not yet eligible for fifty-move draw
+  }
+
+  trackPieceMovement(piece, playerColor, start) {
+    if (piece.toLowerCase() === PIECE_TYPES.KING.toLowerCase()) {
+      // King moved
+      this.pieceMovedStatus[`${playerColor}King`] = true
+    } else if (piece.toLowerCase() === PIECE_TYPES.ROOK.toLowerCase()) {
+      // Rook moved
+      const row = this.getRowForColor(playerColor === 'white' ? WHITE : BLACK)
+      if (start[0] === row && start[1] === 0) {
+        // Queenside rook
+        this.pieceMovedStatus[`${playerColor}QueensideRook`] = true
+      } else if (start[0] === row && start[1] === 7) {
+        // Kingside rook
+        this.pieceMovedStatus[`${playerColor}KingsideRook`] = true
+      }
+    }
+  }
+
+  handleEnPassantOnMove(piece, start, end) {
+    if (
+      piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() &&
+      Math.abs(start[0] - end[0]) === 2
+    ) {
       // Save potential en-passant target
       this.enPassantTarget = [(start[0] + end[0]) / 2, end[1]]
     } else {
       this.enPassantTarget = null // Clear en-passant target if not relevant
     }
+  }
 
-    // Check for pawn promotion
-    if (this.promotePawn(end)) {
-      this.showPawnPromotionPrompt(end) // Handle promotion in a loop
+  checkThreeFoldRepetition(boardState) {
+    const repetitionCount = this.boardHistory.filter(
+      (state) => state === boardState,
+    ).length
+
+    if (repetitionCount === 2) {
+      this.repetitionCountTwoTracker++ // Increment the counter
+    }
+    if (this.repetitionCountTwoTracker === 4) {
+      this.isDrawByRepetition = true // Mark draw by repetition
+      this.repetitionCountTwoTracker = 0 // Reset the tracker
+    }
+  }
+
+  getBoardState() {
+    return this.board.map((row) => row.join(',')).join('|') // Create a unique state string for the board
+  }
+
+  getFEN() {
+    let fen = ''
+
+    // 1. Convert the board to FEN format
+    for (let row of this.board) {
+      let emptyCount = 0
+      for (let square of row) {
+        if (square) {
+          if (emptyCount > 0) {
+            fen += emptyCount // Add empty squares if any
+            emptyCount = 0
+          }
+          fen += square // Add the piece
+        } else {
+          emptyCount++
+        }
+      }
+      if (emptyCount > 0) {
+        fen += emptyCount // Add remaining empty squares if at the end of the row
+      }
+      fen += '/' // Move to the next rank
     }
 
-    // Switch turn
-    this.switchTurn()
+    // Remove the last slash
+    fen = fen.slice(0, -1)
+
+    // 2. Active color
+    fen += ` ${this.currentPlayerTurn === WHITE ? 'w' : 'b'}`
+
+    // 3. Castling rights
+    const castlingRights = []
+    if (
+      !this.pieceMovedStatus.whiteKing &&
+      !this.pieceMovedStatus.whiteKingsideRook
+    ) {
+      castlingRights.push('K') // White can castle kingside
+    }
+    if (
+      !this.pieceMovedStatus.whiteKing &&
+      !this.pieceMovedStatus.whiteQueensideRook
+    ) {
+      castlingRights.push('Q') // White can castle queenside
+    }
+    if (
+      !this.pieceMovedStatus.blackKing &&
+      !this.pieceMovedStatus.blackKingsideRook
+    ) {
+      castlingRights.push('k') // Black can castle kingside
+    }
+    if (
+      !this.pieceMovedStatus.blackKing &&
+      !this.pieceMovedStatus.blackQueensideRook
+    ) {
+      castlingRights.push('q') // Black can castle queenside
+    }
+    fen += ` ${castlingRights.join('') || '-'}` // Defaults to '-' if no castling rights
+
+    // 4. En passant target square
+    fen += ` ${
+      this.enPassantTarget
+        ? `${this.enPassantTarget[1]}${8 - this.enPassantTarget[0]}`
+        : '-'
+    }`
+
+    // 5. Halfmove clock (for fifty-move rule)
+    fen += ` ${this.fiftyMoveCounter}`
+
+    // 6. Fullmove number
+    fen += ` ${Math.floor(this.boardHistory.length / 2) + 1}` // Adjust full move number
+
+    return fen // Return the FEN string
   }
 
   showPawnPromotionPrompt(position) {
@@ -526,7 +739,6 @@ class ChessGame {
             this.currentPlayerTurn === WHITE ? 'Q, R, B, N' : 'q, r, b, n'
           } `,
         )
-        // Attempt to handle promotion with the selected piece
         this.setPiece(
           position[0],
           position[1],
@@ -540,8 +752,16 @@ class ChessGame {
   }
 
   handlePawnPromotion(selectedPiece) {
-    const validPiecesWhite = ['Q', 'R', 'B', 'N']
-    const validPiecesBlack = ['q', 'r', 'b', 'n']
+    const validPiecesWhite = [
+      PIECE_TYPES.QUEEN,
+      PIECE_TYPES.ROOK,
+      PIECE_TYPES.BISHOP,
+      PIECE_TYPES.KNIGHT,
+    ]
+    const validPiecesBlack = validPiecesWhite.map((piece) =>
+      piece.toLowerCase(),
+    )
+
     if (
       (validPiecesWhite.includes(selectedPiece) &&
         this.currentPlayerTurn === WHITE) ||
@@ -559,67 +779,90 @@ class ChessGame {
   }
 
   isCheckmate() {
-    const kingPosition = this.findPiecePosition('K', this.currentPlayerTurn)
+    const kingPosition = this.getPiecePosition(
+      PIECE_TYPES.KING,
+      this.currentPlayerTurn,
+    )
 
     // If the king isn't in check, it can't be checkmate
-    if (!this.isSquareAttacked(kingPosition)) {
-      return false
-    }
+    if (!this.isSquareAttacked(kingPosition)) return false
 
-    // Check if king can move to a safe square
+    // Check if the king has any escape moves
+    if (this.kingHasEscapeMoves(kingPosition)) return false
+
+    // Check if any piece can block the check
+    if (this.isPieceCanBlockCheck(kingPosition)) return false
+
+    // If no valid moves can protect the king and the king can't move, it's checkmate
+    return true
+  }
+
+  kingHasEscapeMoves(kingPosition) {
     const [kingX, kingY] = kingPosition
+
     for (let x = kingX - 1; x <= kingX + 1; x++) {
       for (let y = kingY - 1; y <= kingY + 1; y++) {
-        if (x >= 0 && x < 8 && y >= 0 && y < 8) {
-          if (this.isValidKingMove(kingPosition, [x, y])) {
-            const targetPiece = this.getPiece(x, y)
-            if (
-              targetPiece === null || // Target square is empty
-              (targetPiece !== null &&
-                this.getPieceColor(targetPiece) !== this.currentPlayerTurn)
-            ) {
-              // Check if the king moves to this square does not lead to check
-              const originalPiece = this.getPiece(kingX, kingY) // Store original piece
-              this.removePiece(kingX, kingY) // Move king temporarily
-              this.setPiece(x, y, 'K') // Place king on new square
-
-              const isStillSafe = !this.isSquareAttacked([x, y])
-
-              // Move the king back to original position
-              this.setPiece(x, y, targetPiece) // Restore target square piece
-              this.setPiece(kingX, kingY, originalPiece) // Restore king's original position
-
-              if (isStillSafe) {
-                return false // The king has a safe escape move
-              }
+        if (
+          this.isOnBoard([x, y]) &&
+          this.isValidKingMove(kingPosition, [x, y])
+        ) {
+          const targetPiece = this.getPiece(x, y)
+          if (
+            targetPiece === null ||
+            this.getPieceColor(targetPiece) !== this.currentPlayerTurn
+          ) {
+            // Check if the king moving to this square does not lead to check
+            if (this.canMoveSafely(kingPosition, [x, y])) {
+              return true // Escape move found
             }
           }
         }
       }
     }
 
-    // Check if any piece can block the check
+    return false // No escape moves available
+  }
+
+  canMoveSafely(start, end) {
+    const originalPiece = this.getPiece(start[0], start[1])
+    const targetPiece = this.getPiece(end[0], end[1])
+
+    // Temporarily make the move
+    this.setPiece(end[0], end[1], originalPiece)
+    this.removePiece(start[0], start[1])
+
+    const isStillSafe = !this.isSquareAttacked(end)
+
+    // Undo the temporary move
+    this.removePiece(end[0], end[1])
+    this.setPiece(start[0], start[1], originalPiece)
+
+    if (targetPiece) {
+      this.setPiece(end[0], end[1], targetPiece) // Restore target piece
+    }
+
+    return isStillSafe
+  }
+
+  isPieceCanBlockCheck(kingPosition) {
     for (let x = 0; x < 8; x++) {
       for (let y = 0; y < 8; y++) {
         const piece = this.getPiece(x, y)
-        if (
-          piece !== null &&
-          this.getPieceColor(piece) === this.currentPlayerTurn
-        ) {
+        if (piece && this.getPieceColor(piece) === this.currentPlayerTurn) {
           const validMoves = this.getValidMoves([x, y])
 
           for (const move of validMoves) {
             // Temporarily make this move
-            const originalTargetPiece = this.getPiece(move[0], move[1]) // Store the target piece
-            this.setPiece(move[0], move[1], piece) // Move the piece to the new location
-            this.removePiece(x, y) // Remove piece from original location
+            const originalTargetPiece = this.getPiece(move[0], move[1])
+            this.setPiece(move[0], move[1], piece)
+            this.removePiece(x, y)
 
             if (!this.isSquareAttacked(kingPosition)) {
+              // Move was deemed valid for blocking the check
               // Restore the board
               this.setPiece(x, y, piece) // Move the piece back
               this.setPiece(move[0], move[1], originalTargetPiece) // Restore target piece
-
-              return false // There is a valid move that can block the check
+              return true // Block found
             }
 
             // Restore the board
@@ -629,19 +872,19 @@ class ChessGame {
         }
       }
     }
-
-    // If no valid moves can protect the king and the king can't move, it's checkmate
-    return true
+    return false // No blocking moves available
   }
 
   isStalemate() {
-    // Check if the current player's king is in check
-    const kingPosition = this.findPiecePosition('K', this.currentPlayerTurn)
+    const kingPosition = this.getPiecePosition(
+      PIECE_TYPES.KING,
+      this.currentPlayerTurn,
+    )
     if (this.isSquareAttacked(kingPosition)) {
-      return false // Not stalemate, the king is in check
+      return false // Not stalemate as the king is in check
     }
 
-    // Now check if the player has any legal moves
+    // Check for any legal moves available
     for (let x = 0; x < 8; x++) {
       for (let y = 0; y < 8; y++) {
         const piece = this.getPiece(x, y)
@@ -654,7 +897,29 @@ class ChessGame {
       }
     }
 
-    return true // No valid moves, thus stalemate
+    return true // No valid moves available, thus stalemate
+  }
+
+  // Method to convert move string like 'c5d5' into coordinates
+  getCoordinatesFromMove(move) {
+    if (move.length !== 4) {
+      throw new Error('Invalid move format! Move must be 4 characters long.')
+    }
+
+    const startFile = move[0] // The first letter representing the starting file
+    const startRank = move[1] // The first number representing the starting rank
+    const endFile = move[2] // The second letter representing the ending file
+    const endRank = move[3] // The second number representing the ending rank
+
+    const startX = 8 - parseInt(startRank, 10) // Convert rank to array index (0-7)
+    const startY = startFile.charCodeAt(0) - 'a'.charCodeAt(0) // Convert file from letter to index
+    const endX = 8 - parseInt(endRank, 10) // Convert rank to array index (0-7)
+    const endY = endFile.charCodeAt(0) - 'a'.charCodeAt(0) // Convert file from letter to index
+
+    return {
+      start: [startX, startY],
+      end: [endX, endY],
+    }
   }
 
   getValidMoves(position) {
@@ -676,73 +941,105 @@ class ChessGame {
   }
 
   isDrawByInsufficientMaterial() {
-    // king versus king.
-    // king and bishop versus king.
-    // king and knight versus king.
-    // king and bishop versus king and bishop with the bishops on the same color.
+    const pieceCounts = this.countPieces()
+    return this.checkInsufficientMaterial(pieceCounts)
+  }
 
-    let whitePieces = 0
-    let blackPieces = 0
-    let whiteBishops = 0
-    let blackBishops = 0
+  countPieces() {
+    // Initialize counts for both colors
+    const counts = {
+      white: { total: 0, bishops: 0, knights: 0, rooks: 0, pawns: 0, king: 1 },
+      black: { total: 0, bishops: 0, knights: 0, rooks: 0, pawns: 0, king: 1 },
+    }
+
+    const pieceTypeMap = {
+      [PIECE_TYPES.BISHOP.toUpperCase()]: 'bishops',
+      [PIECE_TYPES.KNIGHT.toUpperCase()]: 'knights',
+      [PIECE_TYPES.ROOK.toUpperCase()]: 'rooks',
+      [PIECE_TYPES.PAWN.toUpperCase()]: 'pawns',
+      [PIECE_TYPES.BISHOP.toLowerCase()]: 'bishops',
+      [PIECE_TYPES.KNIGHT.toLowerCase()]: 'knights',
+      [PIECE_TYPES.ROOK.toLowerCase()]: 'rooks',
+      [PIECE_TYPES.PAWN.toLowerCase()]: 'pawns',
+    }
 
     for (let x = 0; x < 8; x++) {
       for (let y = 0; y < 8; y++) {
         const piece = this.getPiece(x, y)
         if (!piece) continue // Skip empty squares
 
-        const isWhite = piece === piece.toUpperCase()
-        if (isWhite) {
-          whitePieces++
-          if (piece === 'B') {
-            whiteBishops++
-          }
-        } else {
-          blackPieces++
-          if (piece === 'b') {
-            blackBishops++
-          }
+        const color = piece === piece.toUpperCase() ? 'white' : 'black'
+        counts[color].total++
+
+        // Determine the piece type
+        const capitalizedPiece =
+          piece === piece.toUpperCase() ? piece : piece.toLowerCase()
+        const pieceType = pieceTypeMap[capitalizedPiece]
+        if (pieceType) {
+          counts[color][pieceType]++
         }
       }
     }
 
-    // Check basic king vs king scenario
-    if (whitePieces === 1 && blackPieces === 1) {
-      return true // King vs King
-    }
+    return counts // Return the piece counts for both colors
+  }
 
-    // Check king vs king + bishop or knight
-    if (
-      whitePieces === 1 &&
-      (blackPieces === 2 || (blackPieces === 3 && blackBishops === 0))
-    ) {
-      return true // King vs King + Bishop
-    }
+  checkInsufficientMaterial(pieceCounts) {
+    const { white, black } = pieceCounts
 
-    if (
-      blackPieces === 1 &&
-      (whitePieces === 2 || (whitePieces === 3 && whiteBishops === 0))
-    ) {
-      return true // King + Bishop vs King
-    }
+    // king vs king
+    const isKingVsKing =
+      white.king === 1 &&
+      black.king === 1 &&
+      white.total === 1 &&
+      black.total === 1
 
-    // Check for the same color bishops
-    if (whiteBishops > 0 && blackBishops > 0) {
-      if (whiteBishops === 1 && blackBishops === 1) {
-        // Assume the bishops are the same color if this piece of information
-        // is not tracked, it requires an additional check of their positions.
-        const whiteBishopPosition = this.findPiecePosition('B', WHITE)
-        const blackBishopPosition = this.findPiecePosition('b', BLACK)
-        if (
-          (whiteBishopPosition[0] + whiteBishopPosition[1]) % 2 ===
-          (blackBishopPosition[0] + blackBishopPosition[1]) % 2
-        ) {
-          return true // Both bishops on the same color
-        }
-      }
-    }
+    // king vs king + bishop
+    // king vs king + knight
+    const isKingVsMinorPiece = (piece) =>
+      (white.king === 1 &&
+        black.king === 1 &&
+        white.total === 1 &&
+        black[piece] === 1 &&
+        black.total === 2) ||
+      (black.king === 1 &&
+        white.king === 1 &&
+        black.total === 1 &&
+        white[piece] === 1 &&
+        white.total === 2)
 
-    return false // There is sufficient material to continue playing
+    // king + bishop vs king + bishop
+    // king + knight vs king + knight
+    // king + bishop vs king + knight
+    const isKingMinorPieceVsKingMinorPiece = (piece) =>
+      (white.king === 1 &&
+        black.king === 1 &&
+        white[piece] === 1 &&
+        black[piece] === 1 &&
+        white.total === 2 &&
+        black.total === 2) ||
+      // king + bishop vs king + knight
+      (white.king === 1 &&
+        black.king === 1 &&
+        white.bishops === 1 &&
+        black.knights === 1 &&
+        white.total === 2 &&
+        black.total === 2) ||
+      (black.king === 1 &&
+        white.king === 1 &&
+        black.bishops === 1 &&
+        white.knights === 1 &&
+        black.total === 2 &&
+        white.total === 2)
+
+    return (
+      isKingVsKing ||
+      isKingVsMinorPiece('bishops') ||
+      isKingVsMinorPiece('knights') ||
+      isKingMinorPieceVsKingMinorPiece('bishops') ||
+      isKingMinorPieceVsKingMinorPiece('knights') ||
+      false
+    )
   }
 
   // Simple representation of the board
@@ -766,5 +1063,8 @@ class ChessGame {
 // 2n/1P/4k3/1p3p2/7p/P1P2P1K/4p/3N w - - 0 41 - pawn promotion position
 // r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1 - castling position
 
-const initialFEN = 'r3kbnr/pppppppp/8/2q2r/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1'
+// https://lichess.org/3KkqKLdO#66 3-fold rep testing
+// https://lichess.org/games/search?perf=6&mode=1&durationMin=600&durationMax=600&status=34&dateMin=2024-10-28&dateMax=2024-10-29&sort.field=d&sort.order=desc#results
+
+const initialFEN = 'r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1'
 export const chess = new ChessGame(initialFEN)
