@@ -1,6 +1,6 @@
 //chess.js
 
-import { chess } from './chesslib.js'
+import { BLACK, PIECE_TYPES, WHITE, chess } from './chesslib.js'
 import { PlayStockfish } from './playstockfish.js'
 
 class ChessUI {
@@ -193,7 +193,7 @@ class ChessUI {
   isValidPieceSelection(piece) {
     if (!piece) return false // No piece in the square
 
-    const pieceColor = piece === piece.toUpperCase() ? 'w' : 'b' // Determine the color of the piece
+    const pieceColor = piece === piece.toUpperCase() ? WHITE : BLACK // Determine the color of the piece
     return pieceColor === this.chessGame.currentPlayerTurn // Return true only if it's the correct player's turn
   }
 
@@ -249,6 +249,46 @@ class ChessUI {
     highlightedCircles.forEach((circle) => circle.remove())
   }
 
+  showPawnPromotionDialog(row, column) {
+    const [startX, startY] = this.selectedPiece
+
+    // Show the pawn promotion modal
+    const pawnPromotionModal = new bootstrap.Modal(
+      document.getElementById('pawnPromotionModal'),
+    )
+    pawnPromotionModal.show()
+
+    // Array of promotion options with their corresponding piece types
+    const promotionOptions = [
+      { id: 'promoteToQueen', piecetype: PIECE_TYPES.QUEEN },
+      { id: 'promoteToRook', piecetype: PIECE_TYPES.ROOK },
+      { id: 'promoteToBishop', piecetype: PIECE_TYPES.BISHOP },
+      { id: 'promoteToKnight', piecetype: PIECE_TYPES.KNIGHT },
+    ]
+
+    // Loop through each promotion option and set event listeners
+    promotionOptions.forEach((option) => {
+      document.getElementById(option.id).onclick = () => {
+        this.chessGame.handlePawnPromotion(
+          row,
+          column,
+          this.chessGame.currentPlayerTurn === WHITE
+            ? option.piecetype
+            : option.piecetype.toLowerCase(), // Adjust for black promotion
+        ) // Promote to the specified piece
+        this.chessGame.removePiece(startX, startY)
+        pawnPromotionModal.hide() // Close the modal
+        this.renderBoard() // Refresh the board
+        if (this.isBotGame) this.stockfishMove() // Request Stockfish move if it's a bot game
+      }
+    })
+
+    // Add an event listener to deselect the piece when the modal is hidden
+    pawnPromotionModal._element.addEventListener('hidden.bs.modal', () => {
+      this.deselectPiece() // Deselect the piece on modal close
+    })
+  }
+
   movePiece(row, column) {
     if (!this.selectedPiece || this.gameOver) return // No piece selected or game is over
 
@@ -260,7 +300,7 @@ class ChessUI {
         this.chessGame.castle([startX, startY], [row, column])
         this.renderBoard() // Refresh the board
         this.deselectPiece()
-        this.stockfishMove() // Request Stockfish move if it's a bot game
+        if (this.isBotGame) this.stockfishMove() // Request Stockfish move if it's a bot game
         return
       } catch (error) {
         alert(error.message) // Notify user about the invalid castling
@@ -306,8 +346,20 @@ class ChessUI {
           this.chessGame.board[capturedRow][capturedCol] = null
         }
 
+        // Check for pawn promotion
+        if (
+          (row === 0 || row === 7) &&
+          (this.chessGame.getPiece(...this.selectedPiece) ===
+            PIECE_TYPES.PAWN ||
+            this.chessGame.getPiece(...this.selectedPiece) ===
+              PIECE_TYPES.PAWN.toLowerCase())
+        ) {
+          this.showPawnPromotionDialog(row, column)
+          return
+        }
+
         this.executeMove(startX, startY, row, column)
-        this.stockfishMove() // Request Stockfish move if it's a bot game
+        if (this.isBotGame) this.stockfishMove() // Request Stockfish move if it's a bot game
 
         // Check for checkmate after the move
         if (this.chessGame.isCheckmate()) {

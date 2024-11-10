@@ -1,8 +1,8 @@
 // chesslib.js
-const WHITE = 'w'
-const BLACK = 'b'
+export const WHITE = 'w'
+export const BLACK = 'b'
 
-const PIECE_TYPES = {
+export const PIECE_TYPES = {
   KING: 'K',
   QUEEN: 'Q',
   ROOK: 'R',
@@ -203,14 +203,6 @@ class ChessGame {
       targetPiece === null &&
       this.board[startX + direction][startY] === null &&
       startX === (direction === -1 ? 6 : 1)
-    )
-  }
-
-  promotePawn(position) {
-    const piece = this.getPiece(position[0], position[1])
-    return (
-      piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() &&
-      (position[0] === 0 || position[0] === 7)
     )
   }
 
@@ -591,11 +583,6 @@ class ChessGame {
     // Handle en-passant
     this.handleEnPassantOnMove(piece, start, end)
 
-    // Check for pawn promotion
-    if (this.promotePawn(end)) {
-      this.showPawnPromotionPrompt(end)
-    }
-
     // Check for 3-fold repetition
     this.checkThreeFoldRepetition(boardState)
 
@@ -731,27 +718,7 @@ class ChessGame {
     return fen // Return the FEN string
   }
 
-  showPawnPromotionPrompt(position) {
-    while (true) {
-      try {
-        const selectedPiece = prompt(
-          `Choose piece to promote to ${
-            this.currentPlayerTurn === WHITE ? 'Q, R, B, N' : 'q, r, b, n'
-          } `,
-        )
-        this.setPiece(
-          position[0],
-          position[1],
-          this.handlePawnPromotion(selectedPiece),
-        )
-        break // Exit the loop if successful
-      } catch (error) {
-        alert(error) // Show error if the selected piece is invalid
-      }
-    }
-  }
-
-  handlePawnPromotion(selectedPiece) {
+  handlePawnPromotion(row, column, selectedPiece) {
     const validPiecesWhite = [
       PIECE_TYPES.QUEEN,
       PIECE_TYPES.ROOK,
@@ -768,7 +735,8 @@ class ChessGame {
       (validPiecesBlack.includes(selectedPiece) &&
         this.currentPlayerTurn === BLACK)
     ) {
-      return selectedPiece // Return selected piece
+      this.setPiece(row, column, selectedPiece)
+      this.switchTurn()
     } else {
       throw new Error(
         `Invalid promotion piece! Choose from ${
@@ -1066,5 +1034,5 @@ class ChessGame {
 // https://lichess.org/3KkqKLdO#66 3-fold rep testing
 // https://lichess.org/games/search?perf=6&mode=1&durationMin=600&durationMax=600&status=34&dateMin=2024-10-28&dateMax=2024-10-29&sort.field=d&sort.order=desc#results
 
-const initialFEN = 'r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1'
+const initialFEN = '2n/1P/4k3/1p3p2/7p/P1P2P1K/4p/3N w - - 0 41'
 export const chess = new ChessGame(initialFEN)
