@@ -253,12 +253,12 @@ class ChessGame {
         const piece = this.getPiece(x, y)
         if (piece && this.getPieceColor(piece) === opponentColor) {
           if (this.validatePieceMove(piece, [x, y], position)) {
-            return true
+            return true // If any opponent's piece can attack the square
           }
         }
       }
     }
-    return false
+    return false // No opponent's piece can attack the square
   }
 
   canCastleKingside() {
@@ -352,7 +352,7 @@ class ChessGame {
     )
 
     // If the King's new position is not safe, abort castling
-    if (!isKingSafe1 && !isKingSafe2) return
+    if (!isKingSafe1 || !isKingSafe2) return
 
     // Check specific path clearance for Kingside castling
     if (castlingType === 'kingside' && this.canCastleKingside()) {
