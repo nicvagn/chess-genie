@@ -67,3 +67,7 @@ body {
   overflow-y: auto; /* Allow vertical scrolling if necessary */
   max-height: 500px; /* Limit height of the move table */
 }
+
+.move-highlight {
+  background-color: rgb(170, 255, 0); /* Use a light green for highlight */
+}

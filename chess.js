@@ -26,6 +26,8 @@ class ChessUI {
     this.isFlipped = false // Track if the board is flipped
     this.isBotGame = false // Track if it's a bot game
     this.stockfishAI = null // Placeholder for the Stockfish AI
+    this.lastMove = null
+    this.highlightedSquares = [] // Highlight last move squares (moved from & moved to)
     this.initializeBoard()
     this.flipChessboard()
 
@@ -130,6 +132,11 @@ class ChessUI {
         const renderedColumn = this.isFlipped ? 7 - column : column
         this.createSquare(renderedRow, renderedColumn)
       }
+    }
+
+    // Highlight last move squares if available
+    if (this.lastMove) {
+      this.highlightMoveSquares()
     }
   }
 
@@ -359,6 +366,10 @@ class ChessUI {
         }
 
         this.executeMove(startX, startY, row, column)
+        this.lastMove = [
+          [startX, startY],
+          [row, column],
+        ]
         if (this.isBotGame) this.stockfishMove() // Request Stockfish move if it's a bot game
 
         // Check for checkmate after the move
@@ -399,6 +410,24 @@ class ChessUI {
     } else {
       this.deselectPiece()
     }
+  }
+
+  // New method to highlight the moved squares
+  highlightMoveSquares() {
+    const [[startX, startY], [endX, endY]] = this.lastMove
+    const startSquare = this.chessboardElement.querySelector(
+      `.square[data-row='${startX}'][data-col='${startY}']`,
+    )
+    const endSquare = this.chessboardElement.querySelector(
+      `.square[data-row='${endX}'][data-col='${endY}']`,
+    )
+
+    // Set highlight class on both squares
+    startSquare.classList.add('move-highlight')
+    endSquare.classList.add('move-highlight')
+
+    // Store the highlighted squares
+    this.highlightedSquares = [startSquare, endSquare]
   }
 
   animateMove(pieceSquare, targetSquare) {
