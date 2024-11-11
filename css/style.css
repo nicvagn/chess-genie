@@ -3,22 +3,20 @@ body {
 }
 
 #chessboard {
+  width: 400px; /* Fixed width */
+  height: 400px; /* Fixed height */
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  grid-template-rows: repeat(8, 1fr);
-  border: 1px solid #333333;
-  width: fit-content;
-  height: fit-content;
   overflow: hidden;
+  border: 1px solid #333333;
+  grid-template-rows: repeat(8, 1fr);
+  grid-template-columns: repeat(8, 1fr);
 }
 
 .square {
-  position: relative;
-  width: 55px;
-  height: 55px;
   display: flex;
-  justify-content: center;
+  position: relative;
   align-items: center;
+  justify-content: center;
 }
 
 .black {
@@ -30,22 +28,20 @@ body {
 }
 
 .piece {
-  width: 100%;
-  height: auto;
   cursor: pointer;
   max-width: 100%;
   max-height: 100%;
 }
 
 .highlight-circle {
+  top: 50%;
+  left: 50%;
   width: 40%;
   height: 40%;
   border-radius: 50%;
-  background-color: rgba(42, 48, 42, 0.3);
   position: absolute;
-  top: 50%;
-  left: 50%;
   transform: translate(-50%, -50%);
+  background-color: rgba(42, 48, 42, 0.3);
 }
 
 .selected-square {
@@ -53,21 +49,69 @@ body {
 }
 
 .coords {
+  right: 2px;
+  bottom: 2px;
+  font-size: 10px;
   position: absolute;
   color: rgba(0, 0, 0, 0.5);
-  font-size: 10px;
-  bottom: 2px;
-  right: 2px;
 }
 
 .move-table {
-  background-color: #ffffff; /* White background for move analysis table */
-  padding: 15px;
-  border-left: 1px solid #dee2e6; /* Border between chessboard and analysis */
   overflow-y: auto; /* Allow vertical scrolling if necessary */
   max-height: 500px; /* Limit height of the move table */
+  background-color: #ffffff; /* White background for move analysis table */
+  border-left: 1px solid #dee2e6; /* Border between chessboard and analysis */
 }
 
 .move-highlight {
-  background-color: rgb(170, 255, 0); /* Use a light green for highlight */
+  background-color: rgba(119, 255, 0, 0.7);
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.btn-custom {
+  width: 35px;
+  height: 35px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0; /* Reset margin to avoid spacing issues */
+  padding: 0; /* Reset padding */
+}
+
+.file-labels {
+  display: flex;
+  position: absolute;
+  align-items: center;
+  justify-content: center;
+  width: 400px;
+  top: 100%;
+  left: 1%;
+  flex-direction: row;
+}
+
+.rank-labels {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  left: 32%;
+  top: 50%;
+  transform: translate(50%, -50%);
+}
+
+.rank-labels div {
+  width: 100%; /* Set a specific width to fit within the squares */
+  height: 50px; /* Ensure height matches the chessboard squares */
+  display: flex; /* Enable flexbox for alignment */
+  align-items: center; /* Center align text vertically */
+  justify-content: center; /* Center align text horizontally */
+  text-align: center; /* Center align text */
+}
+
+.file-labels div {
+  width: 100%; /* Each label should take the full width available */
+  text-align: center; /* Center align text */
+  display: flex; /* Enable flexbox for alignment */
+  align-items: center; /* Center align text vertically */
+  justify-content: center; /* Center align text horizontally */
 }

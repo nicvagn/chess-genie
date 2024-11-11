@@ -28,6 +28,9 @@ class ChessUI {
     this.stockfishAI = null // Placeholder for the Stockfish AI
     this.lastMove = null
     this.highlightedSquares = [] // Highlight last move squares (moved from & moved to)
+
+    this.hideOtherPieces = false // State for hiding pieces
+    this.togglePawnsButton() // Create the toggle button on initialization
     this.initializeBoard()
     this.flipChessboard()
 
@@ -35,9 +38,33 @@ class ChessUI {
   }
 
   initializeBoard() {
+    this.populateLabels() // New method to populate ranks and files
     this.renderBoard()
   }
+  populateLabels() {
+    const fileLabels = document.getElementById('fileLabels')
+    const rankLabels = document.getElementById('rankLabels')
 
+    // Clear existing labels
+    fileLabels.innerHTML = ''
+    rankLabels.innerHTML = ''
+
+    // File labels (a-h)
+    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    files.forEach((file) => {
+      const label = document.createElement('div')
+      label.textContent = file.toUpperCase() // Upper case letters for the board
+      fileLabels.appendChild(label)
+    })
+
+    // Rank labels (1-8)
+    for (let i = 8; i >= 1; i--) {
+      // 8 to 1 for proper representation
+      const label = document.createElement('div')
+      label.textContent = i // Rank number
+      rankLabels.appendChild(label)
+    }
+  }
   showGameModeSelection() {
     const startGameButton = document.getElementById('startGame')
     startGameButton.addEventListener('click', () => {
@@ -123,6 +150,14 @@ class ChessUI {
     })
   }
 
+  togglePawnsButton() {
+    const toggleButton = document.getElementById('showPawnStructure')
+    toggleButton.addEventListener('click', () => {
+      this.hideOtherPieces = !this.hideOtherPieces
+      this.renderBoard()
+    })
+  }
+
   renderBoard() {
     this.chessboardElement.innerHTML = '' // Clear previous board
 
@@ -150,13 +185,23 @@ class ChessUI {
     squareElement.dataset.col = column
 
     // Create a text node to display the row, column
-    const coordText = document.createElement('span')
-    coordText.classList.add('coords')
-    coordText.textContent = `(${row}, ${column})`
-    squareElement.appendChild(coordText)
+    // const coordText = document.createElement('span')
+    // coordText.classList.add('coords')
+    // coordText.textContent = `(${row}, ${column})`
+    // squareElement.appendChild(coordText)
 
     const chessPiece = this.chessGame.board[row][column]
-    if (chessPiece) {
+
+    // Check if we should hide non-pawn pieces
+    if (
+      this.hideOtherPieces &&
+      chessPiece &&
+      chessPiece.toLowerCase() !== PIECE_TYPES.PAWN.toLowerCase()
+    ) {
+      const emptySquare = document.createElement('div')
+      emptySquare.classList.add('empty')
+      squareElement.appendChild(emptySquare)
+    } else if (chessPiece) {
       this.createPieceElement(squareElement, chessPiece, row, column)
     }
 
