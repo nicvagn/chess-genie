@@ -38,10 +38,11 @@ class ChessUI {
   }
 
   initializeBoard() {
-    this.populateLabels() // New method to populate ranks and files
+    this.showRankFileLabels()
     this.renderBoard()
   }
-  populateLabels() {
+
+  showRankFileLabels() {
     const fileLabels = document.getElementById('fileLabels')
     const rankLabels = document.getElementById('rankLabels')
 
@@ -49,22 +50,25 @@ class ChessUI {
     fileLabels.innerHTML = ''
     rankLabels.innerHTML = ''
 
-    // File labels (a-h)
-    const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    const files = this.isFlipped
+      ? ['h', 'g', 'f', 'e', 'd', 'c', 'b', 'a']
+      : ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h']
+    const ranks = this.isFlipped
+      ? ['1', '2', '3', '4', '5', '6', '7', '8']
+      : ['8', '7', '6', '5', '4', '3', '2', '1']
+
     files.forEach((file) => {
       const label = document.createElement('div')
-      label.textContent = file.toUpperCase() // Upper case letters for the board
+      label.textContent = file
       fileLabels.appendChild(label)
     })
-
-    // Rank labels (1-8)
-    for (let i = 8; i >= 1; i--) {
-      // 8 to 1 for proper representation
+    ranks.forEach((rank) => {
       const label = document.createElement('div')
-      label.textContent = i // Rank number
+      label.textContent = rank
       rankLabels.appendChild(label)
-    }
+    })
   }
+
   showGameModeSelection() {
     const startGameButton = document.getElementById('startGame')
     startGameButton.addEventListener('click', () => {
@@ -146,6 +150,7 @@ class ChessUI {
     const flipButton = document.getElementById('flipBoard')
     flipButton.addEventListener('click', () => {
       this.isFlipped = !this.isFlipped
+      this.showRankFileLabels()
       this.renderBoard()
     })
   }

@@ -82,19 +82,20 @@ body {
   display: flex;
   position: absolute;
   align-items: center;
+  flex-direction: row;
   justify-content: center;
   width: 400px;
   top: 100%;
   left: 1%;
-  flex-direction: row;
 }
 
 .rank-labels {
-  position: absolute;
   display: flex;
-  flex-direction: column;
   position: absolute;
-  left: 32%;
+  align-items: center;
+  flex-direction: column;
+  justify-content: center;
+  left: 32.2%;
   top: 50%;
   transform: translate(50%, -50%);
 }
