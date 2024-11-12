@@ -42,15 +42,19 @@ export class PlayStockfish {
       try {
         this.chessGame.castle(start, end)
         this.chessUI.renderBoard()
+        if (this.chessUI.isWhitePlaysAsBot && this.chessUI.isBlackPlaysAsBot)
+          this.chessUI.stockfishMove() // Trigger Stockfish move again
       } catch (error) {
-        console.error(error) // Log error for invalid castling
+        console.error(error)
       }
     } else {
       try {
         this.chessGame.makeMove(start, end)
-        this.chessUI.renderBoard() // Refresh the board after Stockfish's move
+        this.chessUI.renderBoard()
+        if (this.chessUI.isWhitePlaysAsBot && this.chessUI.isBlackPlaysAsBot)
+          this.chessUI.stockfishMove() // Trigger Stockfish move again
       } catch (error) {
-        console.error(error) // Log error for an invalid move
+        console.error(error)
       }
     }
   }

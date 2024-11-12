@@ -22,9 +22,9 @@ class ChessUI {
       n: 'bN',
       p: 'bP',
     }
-    this.gameOver = false // Track if the game is over
-    this.isFlipped = false // Track if the board is flipped
-    this.isBotGame = false // Track if it's a bot game
+    this.gameOver = false
+    this.isFlipped = false
+    this.isBotGame = false
     this.isWhitePlaysAsHuman = false
     this.isBlackPlaysAsHuman = false
     this.isWhitePlaysAsBot = false
@@ -35,7 +35,7 @@ class ChessUI {
     this.highlightedSquares = [] // Highlight last move squares (moved from & moved to)
 
     this.hideOtherPieces = false // State for hiding pieces
-    this.togglePawnsButton() // Create the toggle button on initialization
+    this.togglePawnsButton()
     this.initializeBoard()
     this.flipChessboard()
 
@@ -132,8 +132,6 @@ class ChessUI {
         document.getElementById('createNewGameModal'),
       )
       createNewGameModal.hide()
-
-      this.renderBoard() // Render the board after setting up the game
     })
   }
 
