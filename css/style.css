@@ -1,5 +1,5 @@
 body {
-  background-color: #f8f9fa; /* Light background for the page */
+  background-color: #f8f9fa;
 }
 
 #chessboard {
@@ -57,10 +57,10 @@ body {
 }
 
 .move-table {
-  overflow-y: auto; /* Allow vertical scrolling if necessary */
-  max-height: 500px; /* Limit height of the move table */
-  background-color: #ffffff; /* White background for move analysis table */
-  border-left: 1px solid #dee2e6; /* Border between chessboard and analysis */
+  overflow-y: auto;
+  max-height: 500px;
+  background-color: #ffffff;
+  border-left: 1px solid #dee2e6;
 }
 
 .move-highlight {
@@ -69,13 +69,15 @@ body {
 }
 
 .btn-custom {
-  width: 35px;
-  height: 35px;
+  width: 35px; /* Fixed width */
+  height: 35px; /* Fixed height */
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0; /* Reset margin to avoid spacing issues */
   padding: 0; /* Reset padding */
+  flex-grow: 0; /* Prevent buttons from growing */
+  flex-shrink: 0; /* Prevent buttons from shrinking */
 }
 
 .file-labels {

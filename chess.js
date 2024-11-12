@@ -25,7 +25,12 @@ class ChessUI {
     this.gameOver = false // Track if the game is over
     this.isFlipped = false // Track if the board is flipped
     this.isBotGame = false // Track if it's a bot game
-    this.stockfishAI = null // Placeholder for the Stockfish AI
+    this.isWhitePlaysAsHuman = false
+    this.isBlackPlaysAsHuman = false
+    this.isWhitePlaysAsBot = false
+    this.isBlackPlaysAsBot = false
+    this.stockfishAIWhite = null
+    this.stockfishAIBlack = null
     this.lastMove = null
     this.highlightedSquares = [] // Highlight last move squares (moved from & moved to)
 
@@ -34,7 +39,7 @@ class ChessUI {
     this.initializeBoard()
     this.flipChessboard()
 
-    this.showGameModeSelection()
+    this.setupGameModeSelection()
   }
 
   initializeBoard() {
@@ -69,80 +74,83 @@ class ChessUI {
     })
   }
 
-  showGameModeSelection() {
-    const startGameButton = document.getElementById('startGame')
-    startGameButton.addEventListener('click', () => {
-      const gameModeModal = new bootstrap.Modal(
-        document.getElementById('gameModeModal'),
+  setupGameModeSelection() {
+    const playButton = document.querySelector('button[type="submit"]')
+    playButton.addEventListener('click', () => {
+      const whitePlayer = document.querySelector(
+        'input[name="whitePlayer"]:checked',
       )
-      gameModeModal.show()
+      const blackPlayer = document.querySelector(
+        'input[name="blackPlayer"]:checked',
+      )
 
-      const stockfishStrengthInput =
-        document.getElementById('stockfishStrength')
+      const isWhiteHuman = whitePlayer.value === 'human'
+      const isBlackHuman = blackPlayer.value === 'human'
 
-      // Update Stockfish Level when input changes
-      stockfishStrengthInput.addEventListener('input', () => {
-        this.updateStockfishLevel(stockfishStrengthInput.value)
-      })
+      const isWhiteBot = whitePlayer.value === 'bot'
+      const isBlackBot = blackPlayer.value === 'bot'
 
-      document
-        .getElementById('playerVsPlayer')
-        .addEventListener('click', () => {
-          this.startPlayerVsPlayerGame()
-          this.isBotGame = false // Player vs Player
-          gameModeModal.hide()
-        })
+      if (isWhiteHuman && isBlackBot) {
+        // Human vs Stockfish
+        this.isBotGame = true
+        this.isWhitePlaysAsHuman = true
+        this.isBlackPlaysAsBot = true
+        this.stockfishAIBlack = new PlayStockfish(this.chessGame, this, BLACK)
+        this.stockfishAIBlack.stockfishLevel = Number(
+          document.getElementById('stockfishStrength').value,
+        )
+      } else if (isWhiteBot && isBlackHuman) {
+        // Stockfish vs Human
+        this.isBotGame = true
+        this.isWhitePlaysAsBot = true
+        this.isBlackPlaysAsHuman = true
+        this.stockfishAIWhite = new PlayStockfish(this.chessGame, this, WHITE)
+        this.stockfishAIWhite.stockfishLevel = Number(
+          document.getElementById('stockfishStrength').value,
+        )
+        this.stockfishMove()
+      } else if (isWhiteBot && isBlackBot) {
+        // Stockfish vs Stockfish
+        this.isBotGame = true
+        this.isWhitePlaysAsBot = true
+        this.isBlackPlaysAsBot = true
+        this.stockfishAIWhite = new PlayStockfish(this.chessGame, this, WHITE)
+        this.stockfishAIBlack = new PlayStockfish(this.chessGame, this, BLACK)
+        this.stockfishAIWhite.stockfishLevel = Number(
+          document.getElementById('stockfishStrength').value,
+        )
+        this.stockfishMove()
+      } else if (isWhiteHuman && isBlackHuman) {
+        // Human vs Human
+        this.isBotGame = false
+        this.isWhitePlaysAsHuman = true
+        this.isBlackPlaysAsHuman = true
+      }
 
-      document
-        .getElementById('playerVsBotWhite')
-        .addEventListener('click', () => {
-          this.startPlayerVsBotGame('w')
-          this.isBotGame = true // Player vs Stockfish (White)
-          this.updateStockfishLevel(stockfishStrengthInput.value) // Update Stockfish level
-          gameModeModal.hide()
-        })
+      // Close the modal
+      const createNewGameModal = bootstrap.Modal.getInstance(
+        document.getElementById('createNewGameModal'),
+      )
+      createNewGameModal.hide()
 
-      document
-        .getElementById('playerVsBotBlack')
-        .addEventListener('click', () => {
-          this.startPlayerVsBotGame('b')
-          this.isBotGame = true // Stockfish (Black)
-          this.updateStockfishLevel(stockfishStrengthInput.value) // Update Stockfish level
-          gameModeModal.hide()
-        })
+      this.renderBoard() // Render the board after setting up the game
     })
-  }
-
-  updateStockfishLevel(level) {
-    if (this.stockfishAI) {
-      this.stockfishAI.stockfishLevel = level // Update the level in PlayStockfish
-      this.stockfishAI.stockfish.postMessage(
-        `setoption name Skill Level value ${level}`,
-      ) // Optionally, post the new level to Stockfish
-    }
-  }
-
-  startPlayerVsPlayerGame() {
-    this.isBotGame = false // Set to false for player vs player
-    console.log('Starting Player vs Player Game...')
-    // Additional logic to reset board and start the game can go here.
-  }
-
-  // Update the existing startPlayerVsBotGame method
-  startPlayerVsBotGame(playerColor) {
-    console.log(`Starting Player vs Bot Game... Player: ${playerColor}`)
-    this.stockfishAI = new PlayStockfish(this.chessGame, this) // Pass the ChessUI instance
-    if (playerColor === 'b') {
-      this.stockfishAI.requestStockfishMove() // If the player is black, request the first move for Stockfish.
-    }
   }
 
   // Method called after player's move to request Stockfish's move
   stockfishMove() {
-    if (this.isBotGame && this.chessGame.currentPlayerTurn === 'b') {
-      this.stockfishAI.onPlayerMove(this.gameOver)
-    } else if (this.isBotGame && this.chessGame.currentPlayerTurn === 'w') {
-      this.stockfishAI.onPlayerMove(this.gameOver)
+    if (this.isBotGame) {
+      if (
+        this.isBlackPlaysAsBot &&
+        this.chessGame.currentPlayerTurn === BLACK
+      ) {
+        this.stockfishAIBlack.onPlayerMove(this.gameOver)
+      } else if (
+        this.isWhitePlaysAsBot &&
+        this.chessGame.currentPlayerTurn === WHITE
+      ) {
+        this.stockfishAIWhite.onPlayerMove(this.gameOver)
+      }
     }
   }
 

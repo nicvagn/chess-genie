@@ -50,21 +50,21 @@
       </div>
     </nav>
 
-    <!-- Game Mode Selection Modal -->
+    <!-- Create New Game Modal -->
     <div
       class="modal fade"
-      id="gameModeModal"
+      id="createNewGameModal"
       data-bs-backdrop="static"
       data-bs-keyboard="false"
       tabindex="-1"
-      aria-labelledby="gameModeModalLabel"
+      aria-labelledby="createNewGameModalLabel"
       aria-hidden="true"
     >
       <div class="modal-dialog">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="gameModeModalLabel">
-              Select Game Mode
+            <h5 class="modal-title" id="createNewGameModalLabel">
+              Create New Game
             </h5>
             <button
               type="button"
@@ -74,33 +74,78 @@
             ></button>
           </div>
           <div class="modal-body">
-            <button id="playerVsPlayer" class="btn btn-secondary w-100 mb-2">
-              <i class="fa-solid fa-user"></i>
-              Player vs Player
-              <i class="fa-solid fa-user"></i>
+            <table class="table table-bordered table-sm">
+              <thead>
+                <tr>
+                  <th scope="col" class="text-center">White</th>
+                  <th scope="col" class="text-center">Black</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <input
+                      type="radio"
+                      name="whitePlayer"
+                      value="human"
+                      id="whiteHuman"
+                    />
+                    <label for="whiteHuman">Human</label>
+                  </td>
+                  <td>
+                    <input
+                      type="radio"
+                      name="blackPlayer"
+                      value="human"
+                      id="blackHuman"
+                    />
+                    <label for="blackHuman">Human</label>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <input
+                      type="radio"
+                      name="whitePlayer"
+                      value="bot"
+                      id="whiteBot"
+                    />
+                    <label for="whiteBot">Bot</label>
+                  </td>
+                  <td>
+                    <input
+                      type="radio"
+                      name="blackPlayer"
+                      value="bot"
+                      id="blackBot"
+                    />
+                    <label for="blackBot">Bot</label>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="d-flex flex-row">
+              <p
+                for="stockfishStrength"
+                class="text-lowercase text-center fs-6 fw-lighter text-wrap"
+              >
+                Bot Strength
+              </p>
+              <input
+                type="range"
+                class="form-range m-2"
+                min="0"
+                max="20"
+                id="stockfishStrength"
+                value="5"
+              />
+              <span id="strengthValue" class="ml-2 mt-2 fs-6 fw-lighter"
+                >5</span
+              >
+            </div>
+            <button type="submit" class="btn btn-secondary w-100 mb-2">
+              Play
             </button>
-            <button id="playerVsBotWhite" class="btn btn-secondary w-100 mb-2">
-              <i class="fa-solid fa-user"></i>
-              Player (White) vs Bot (Black)
-              <i class="fa-solid fa-robot"></i>
-            </button>
-            <button id="playerVsBotBlack" class="btn btn-secondary w-100 mb-2">
-              <i class="fa-solid fa-user"></i>
-              Player (Black) vs Bot (White)
-              <i class="fa-solid fa-robot"></i>
-            </button>
-            <label for="stockfishStrength" class="form-label"
-              >Bot Strength</label
-            >
-            <input
-              type="range"
-              class="form-range"
-              min="0"
-              max="20"
-              id="stockfishStrength"
-              value="5"
-            />
-            <span id="strengthValue" class="d-block text-center">5</span>
           </div>
         </div>
       </div>
@@ -158,8 +203,10 @@
           </div>
           <div id="chessboard" class="shadow-lg bg-body"></div>
         </div>
-        <div class="col-2 pt-3">
-          <div class="d-flex flex-row justify-content-center h-100 bg-danger">
+        <div class="col-2 pt-1 m-5">
+          <div
+            class="d-flex flex-row flex-wrap bg-light justify-content-center align-items-baseline border border-primary"
+          >
             <button
               id="flipBoard"
               class="btn btn-secondary m-1 btn-custom"
@@ -207,14 +254,19 @@
       const stockfishStrengthInput =
         document.getElementById('stockfishStrength')
       const strengthValueDisplay = document.getElementById('strengthValue')
-
-      // Update the display value when the range input changes
       stockfishStrengthInput.addEventListener('input', function () {
         strengthValueDisplay.textContent = this.value
       })
-
-      // Initialize the display value on page load
       strengthValueDisplay.textContent = stockfishStrengthInput.value
+    </script>
+
+    <script>
+      document.getElementById('startGame').addEventListener('click', () => {
+        const createNewGameModal = new bootstrap.Modal(
+          document.getElementById('createNewGameModal'),
+        )
+        createNewGameModal.show()
+      })
     </script>
 
     <script src="js/bootstrap.bundle.min.js"></script>

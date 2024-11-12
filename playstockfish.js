@@ -1,9 +1,10 @@
 // playstockfish.js
 
 export class PlayStockfish {
-  constructor(chessGame, chessUI) {
+  constructor(chessGame, chessUI, color) {
     this.chessGame = chessGame
     this.chessUI = chessUI
+    this.color = color // This represents whether it's the Black or White Stockfish
     this.stockfish = new Worker('./stockfish/stockfish-16.1-lite-single.js')
     this.stockfishLevel = 0
 
