@@ -47,15 +47,36 @@ export class PlayStockfish {
       } catch (error) {
         console.error(error)
       }
-    } else {
-      try {
-        this.chessGame.makeMove(start, end)
+      return // Exit after handling castling
+    }
+
+    // Check for pawn promotion
+    const promotionPieces = ['q', 'b', 'r', 'n', 'Q', 'B', 'R', 'N']
+    if (move.length === 5 && promotionPieces.includes(move[4])) {
+      const promotionPiece = move[4]
+
+      // Ensure pawn exists at starting position and is the correct color
+      if (
+        this.chessGame.getPiece(start[0], start[1]).toLowerCase() === 'p' ||
+        this.chessGame.getPiece(start[0], start[1]).toUpperCase() === 'P'
+      ) {
+        this.chessGame.setPiece(end[0], end[1], promotionPiece)
+        this.chessGame.removePiece(start[0], start[1])
         this.chessUI.renderBoard()
+        this.chessGame.switchTurn()
         if (this.chessUI.isWhitePlaysAsBot && this.chessUI.isBlackPlaysAsBot)
           this.chessUI.stockfishMove() // Trigger Stockfish move again
-      } catch (error) {
-        console.error(error)
+        return // Exit after handling pawn promotion
       }
+    }
+
+    try {
+      this.chessGame.makeMove(start, end)
+      this.chessUI.renderBoard()
+      if (this.chessUI.isWhitePlaysAsBot && this.chessUI.isBlackPlaysAsBot)
+        this.chessUI.stockfishMove() // Trigger Stockfish move again
+    } catch (error) {
+      console.error(error)
     }
   }
 
