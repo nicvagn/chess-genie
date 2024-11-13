@@ -196,12 +196,12 @@ class ChessUI {
     squareElement.dataset.col = column
 
     // Create a text node to display the row, column
-    // const coordText = document.createElement('span')
-    // coordText.classList.add('coords')
-    // coordText.textContent = `(${row}, ${column})`
-    // squareElement.appendChild(coordText)
+    const coordText = document.createElement('span')
+    coordText.classList.add('coords')
+    coordText.textContent = `(${row}, ${column})`
+    squareElement.appendChild(coordText)
 
-    const chessPiece = this.chessGame.board[row][column]
+    const chessPiece = this.chessGame.getPiece(row, column)
 
     // Check if we should hide non-pawn pieces
     if (
@@ -233,7 +233,7 @@ class ChessUI {
   }
 
   handlePieceClick(row, column) {
-    const piece = this.chessGame.board[row][column]
+    const piece = this.chessGame.getPiece(row, column)
 
     if (this.isSelectedPiece(row, column)) {
       this.deselectPiece()
