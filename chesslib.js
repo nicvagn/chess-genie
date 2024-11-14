@@ -217,12 +217,13 @@ class ChessGame {
   getPiecePosition(pieceName, playerColor) {
     const piece =
       playerColor === WHITE ? pieceName.toUpperCase() : pieceName.toLowerCase()
+    const positions = []
     for (let position in this.piecePositions) {
       if (this.piecePositions[position] === piece) {
-        return position.split(',').map(Number) // Return the position of the piece
+        positions.push(position.split(',').map(Number))
       }
     }
-    return null // Piece not found
+    return positions.length === 0 ? null : positions // Return null if no positions found, otherwise return the array
   }
 
   // New method to cache valid moves
@@ -321,47 +322,35 @@ class ChessGame {
   }
 
   castle(start, end) {
-    // Check if King is in check before allowing castling
-    const kingPosition = this.getPiecePosition(
-      PIECE_TYPES.KING,
-      this.currentPlayerTurn,
-    )
-    if (this.isSquareAttacked(kingPosition)) return // If King is in check, abort castling
-
+    const row = this.getRowForColor(this.currentPlayerTurn)
     const castlingType = this.isCastlingMove(start, end)
     if (!castlingType) return // Exit if not a castling move
 
-    const row = this.getRowForColor(this.currentPlayerTurn)
-    const kingInitialPosition = [row, 4]
-    const rookInitialPosition =
-      castlingType === 'kingside' ? [row, 7] : [row, 0]
-    const kingNewPosition1 = castlingType === 'kingside' ? [row, 6] : [row, 2] // final square
-    const kingNewPosition2 = castlingType === 'kingside' ? [row, 5] : [row, 3] // square beside the king
-    const rookNewPosition = castlingType === 'kingside' ? [row, 5] : [row, 3]
+    const kingPosition = [row, 4]
+    const rookPosition = castlingType === 'kingside' ? [row, 7] : [row, 0]
+    const finalKingSquare = castlingType === 'kingside' ? [row, 6] : [row, 2]
+    const squareBesidesKing = castlingType === 'kingside' ? [row, 5] : [row, 3]
+    const finalRookSquare = castlingType === 'kingside' ? [row, 5] : [row, 3]
 
-    const king = this.getPiece(...kingInitialPosition)
-    const rook = this.getPiece(...rookInitialPosition)
+    const king = this.getPiece(...kingPosition)
+    const rook = this.getPiece(...rookPosition)
 
-    const isKingSafe1 = this.performTemporaryMovesAndCheckSafety(
+    if (this.isSquareAttacked(kingPosition)) return // If King is in check, abort castling
+
+    const isFinalKingSquareAttacked = this.temporaryMoveKingAndCheckSafety(
       king,
-      rook,
-      kingInitialPosition,
-      rookInitialPosition,
-      kingNewPosition1,
-      rookNewPosition,
+      kingPosition,
+      finalKingSquare,
     )
 
-    const isKingSafe2 = this.performTemporaryMovesAndCheckSafety(
+    const isSquareBesideKingAttacked = this.temporaryMoveKingAndCheckSafety(
       king,
-      rook,
-      kingInitialPosition,
-      rookInitialPosition,
-      kingNewPosition2,
-      rookNewPosition,
+      kingPosition,
+      squareBesidesKing,
     )
 
-    // If the King's new position is not safe, abort castling
-    if (!isKingSafe1 || !isKingSafe2) return
+    // If the King's position is not safe, abort castling
+    if (!isFinalKingSquareAttacked || !isSquareBesideKingAttacked) return
 
     // Check specific path clearance for Kingside castling
     if (castlingType === 'kingside' && this.canCastleKingside()) {
@@ -369,10 +358,10 @@ class ChessGame {
         castlingType,
         king,
         rook,
-        kingInitialPosition,
-        rookInitialPosition,
-        kingNewPosition1,
-        rookNewPosition,
+        kingPosition,
+        rookPosition,
+        finalKingSquare,
+        finalRookSquare,
       )
       this.switchTurn()
       return
@@ -384,39 +373,28 @@ class ChessGame {
         castlingType,
         king,
         rook,
-        kingInitialPosition,
-        rookInitialPosition,
-        kingNewPosition1,
-        rookNewPosition,
+        kingPosition,
+        rookPosition,
+        finalKingSquare,
+        finalRookSquare,
       )
       this.switchTurn()
       return
     }
   }
 
-  performTemporaryMovesAndCheckSafety(
-    king,
-    rook,
-    kingInitialPosition,
-    rookInitialPosition,
-    kingNewPosition,
-    rookNewPosition,
-  ) {
+  temporaryMoveKingAndCheckSafety(king, kingInitialPosition, kingNewPosition) {
     // Temporarily move pieces to validate the castling path
     this.setPiece(...kingNewPosition, king) // Move King to new position
-    this.setPiece(...rookNewPosition, rook) // Move Rook to new position
     this.removePiece(...kingInitialPosition) // Remove King from its initial position
-    this.removePiece(...rookInitialPosition) // Remove Rook from its initial position
 
-    const kingSafe = !this.isSquareAttacked(kingNewPosition)
+    const isKingAttacked = !this.isSquareAttacked(kingNewPosition)
 
     // Undo the temporary moves
     this.removePiece(...kingNewPosition) // Remove King from new position
-    this.removePiece(...rookNewPosition) // Remove Rook from new position
     this.setPiece(...kingInitialPosition, king) // Restore King to its initial position
-    this.setPiece(...rookInitialPosition, rook) // Restore Rook to its initial position
 
-    return kingSafe
+    return isKingAttacked
   }
 
   finalizeCastling(
@@ -484,24 +462,25 @@ class ChessGame {
       return false // No piece to move
     }
 
-    this.setPiece(end[0], end[1], originalPiece)
-    this.removePiece(start[0], start[1])
+    if (this.isValidPieceMoveLogic(originalPiece, start, end)) {
+      // Temporarily move the piece
+      this.setPiece(end[0], end[1], originalPiece)
+      this.removePiece(start[0], start[1])
 
-    const kingPosition = this.getPiecePosition(
-      PIECE_TYPES.KING,
-      this.currentPlayerTurn,
-    )
-    const isKingSafe = !this.isSquareAttacked(kingPosition)
+      const kingPosition = this.getPiecePosition(
+        PIECE_TYPES.KING,
+        this.currentPlayerTurn,
+      )
+      const isKingAttacked = !this.isSquareAttacked(kingPosition)
 
-    // Undo the temporary move
-    this.setPiece(start[0], start[1], originalPiece)
-    this.setPiece(end[0], end[1], targetPiece)
+      // Undo the temporary move
+      this.setPiece(start[0], start[1], originalPiece)
+      this.setPiece(end[0], end[1], targetPiece)
 
-    if (!isKingSafe) {
-      return false // King is in check after the move, return false
+      return isKingAttacked
     }
 
-    return this.isValidPieceMoveLogic(piece, start, end)
+    return false
   }
 
   isValidPieceMoveLogic(piece, start, end) {
@@ -944,7 +923,6 @@ class ChessGame {
 
     for (let position in this.piecePositions) {
       const color = this.getPieceColor(this.piecePositions[position])
-      console.log(this.piecePositions)
       counts[color].total++
 
       // Determine the piece type
@@ -1044,5 +1022,5 @@ class ChessGame {
 // https://lichess.org/3KkqKLdO#66 3-fold rep testing
 // https://lichess.org/games/search?perf=6&mode=1&durationMin=600&durationMax=600&status=34&dateMin=2024-10-28&dateMax=2024-10-29&sort.field=d&sort.order=desc#results
 
-const initialFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+const initialFEN = 'r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1'
 export const chess = new ChessGame(initialFEN)
