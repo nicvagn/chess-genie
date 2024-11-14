@@ -223,7 +223,7 @@ class ChessGame {
         positions.push(position.split(',').map(Number))
       }
     }
-    return positions.length === 0 ? null : positions // Return null if no positions found, otherwise return the array
+    return positions
   }
 
   // New method to cache valid moves
@@ -455,7 +455,7 @@ class ChessGame {
         PIECE_TYPES.KING,
         this.currentPlayerTurn,
       )
-      const isKingAttacked = !this.isSquareAttacked(kingPosition)
+      const isKingAttacked = !this.isSquareAttacked(kingPosition[0])
 
       // Undo the temporary move
       this.setPiece(start[0], start[1], originalPiece)
@@ -734,13 +734,13 @@ class ChessGame {
     )
 
     // If the king isn't in check, it can't be checkmate
-    if (!this.isSquareAttacked(kingPosition)) return false
+    if (!this.isSquareAttacked(kingPosition[0])) return false
 
     // Check if the king has any escape moves
-    if (this.kingHasEscapeMoves(kingPosition)) return false
+    if (this.kingHasEscapeMoves(kingPosition[0])) return false
 
     // Check if any piece can block the check
-    if (this.isPieceCanBlockCheck(kingPosition)) return false
+    if (this.isPieceCanBlockCheck(kingPosition[0])) return false
 
     // If no valid moves can protect the king and the king can't move, it's checkmate
     return true
@@ -827,7 +827,7 @@ class ChessGame {
       PIECE_TYPES.KING,
       this.currentPlayerTurn,
     )
-    if (this.isSquareAttacked(kingPosition)) {
+    if (this.isSquareAttacked(kingPosition[0])) {
       return false // Not stalemate as the king is in check
     }
 
