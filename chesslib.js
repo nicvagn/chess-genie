@@ -337,14 +337,12 @@ class ChessGame {
 
     if (this.isSquareAttacked(kingPosition)) return // If King is in check, abort castling
 
-    const isFinalKingSquareAttacked = this.temporaryMoveKingAndCheckSafety(
-      king,
+    const isFinalKingSquareAttacked = this.isPieceSafeAfterMove(
       kingPosition,
       finalKingSquare,
     )
 
-    const isSquareBesideKingAttacked = this.temporaryMoveKingAndCheckSafety(
-      king,
+    const isSquareBesideKingAttacked = this.isPieceSafeAfterMove(
       kingPosition,
       squareBesidesKing,
     )
@@ -381,20 +379,6 @@ class ChessGame {
       this.switchTurn()
       return
     }
-  }
-
-  temporaryMoveKingAndCheckSafety(king, kingInitialPosition, kingNewPosition) {
-    // Temporarily move pieces to validate the castling path
-    this.setPiece(...kingNewPosition, king) // Move King to new position
-    this.removePiece(...kingInitialPosition) // Remove King from its initial position
-
-    const isKingAttacked = !this.isSquareAttacked(kingNewPosition)
-
-    // Undo the temporary moves
-    this.removePiece(...kingNewPosition) // Remove King from new position
-    this.setPiece(...kingInitialPosition, king) // Restore King to its initial position
-
-    return isKingAttacked
   }
 
   finalizeCastling(
@@ -777,7 +761,7 @@ class ChessGame {
             this.getPieceColor(targetPiece) !== this.currentPlayerTurn
           ) {
             // Check if the king moving to this square does not lead to check
-            if (this.canMoveSafely(kingPosition, [x, y])) {
+            if (this.isPieceSafeAfterMove(kingPosition, [x, y])) {
               return true // Escape move found
             }
           }
@@ -788,7 +772,7 @@ class ChessGame {
     return false // No escape moves available
   }
 
-  canMoveSafely(start, end) {
+  isPieceSafeAfterMove(start, end) {
     const originalPiece = this.getPiece(start[0], start[1])
     const targetPiece = this.getPiece(end[0], end[1])
 
