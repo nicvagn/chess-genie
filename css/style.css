@@ -1,10 +1,16 @@
 body {
   background-color: #f8f9fa;
 }
+.chessboard-container {
+  position: relative;
+  background-color: #b58863;
+  width: 400px;
+  height: 400px;
+}
 
 #chessboard {
-  width: 400px; /* Fixed width */
-  height: 400px; /* Fixed height */
+  width: 400px;
+  height: 400px;
   display: grid;
   overflow: hidden;
   border: 1px solid #333333;
@@ -69,52 +75,46 @@ body {
 }
 
 .btn-custom {
-  width: 35px; /* Fixed width */
-  height: 35px; /* Fixed height */
+  width: 35px;
+  height: 35px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0; /* Reset margin to avoid spacing issues */
-  padding: 0; /* Reset padding */
-  flex-grow: 0; /* Prevent buttons from growing */
-  flex-shrink: 0; /* Prevent buttons from shrinking */
+  margin: 0;
+  padding: 0;
+  flex-grow: 0;
+  flex-shrink: 0;
 }
-
 .file-labels {
   display: flex;
+  justify-content: space-between;
   position: absolute;
-  align-items: center;
-  flex-direction: row;
-  justify-content: center;
-  width: 400px;
   top: 100%;
-  left: 1%;
+  left: 0;
+  right: 0;
 }
 
 .rank-labels {
   display: flex;
-  position: absolute;
-  align-items: center;
   flex-direction: column;
-  justify-content: center;
-  left: 32.2%;
-  top: 50%;
-  transform: translate(50%, -50%);
+  position: absolute;
+  top: 0;
+  left: 100%;
+  height: 100%;
 }
 
 .rank-labels div {
-  width: 100%; /* Set a specific width to fit within the squares */
-  height: 50px; /* Ensure height matches the chessboard squares */
-  display: flex; /* Enable flexbox for alignment */
-  align-items: center; /* Center align text vertically */
-  justify-content: center; /* Center align text horizontally */
-  text-align: center; /* Center align text */
+  width: 20px;
+  height: calc(100% / 8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .file-labels div {
-  width: 100%; /* Each label should take the full width available */
-  text-align: center; /* Center align text */
-  display: flex; /* Enable flexbox for alignment */
-  align-items: center; /* Center align text vertically */
-  justify-content: center; /* Center align text horizontally */
+  width: calc(100% / 8);
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
