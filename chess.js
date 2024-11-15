@@ -192,7 +192,7 @@ class ChessUI {
         `.square[data-row='${square[0]}'][data-col='${square[1]}']`,
       )
       if (squareElement) {
-        squareElement.classList.add(square[2]) // square[2] should be the highlight class name (red, green, yellow)
+        squareElement.classList.add(square[2]) // square[2] should be the highlight class name (red, green, lightblue)
       }
     })
   }
@@ -252,17 +252,17 @@ class ChessUI {
 
     squareElement.addEventListener('click', (event) => {
       if (event.ctrlKey) {
-        squareElement.classList.remove('highlight-green', 'highlight-yellow')
+        squareElement.classList.remove('highlight-green', 'highlight-lightblue')
         squareElement.classList.toggle('highlight-red')
         this.storeHighlight(row, column, 'highlight-red')
       } else if (event.altKey) {
-        squareElement.classList.remove('highlight-red', 'highlight-yellow')
+        squareElement.classList.remove('highlight-red', 'highlight-lightblue')
         squareElement.classList.toggle('highlight-green')
         this.storeHighlight(row, column, 'highlight-green')
       } else if (event.shiftKey) {
         squareElement.classList.remove('highlight-red', 'highlight-green')
-        squareElement.classList.toggle('highlight-yellow')
-        this.storeHighlight(row, column, 'highlight-yellow')
+        squareElement.classList.toggle('highlight-lightblue')
+        this.storeHighlight(row, column, 'highlight-lightblue')
       } else {
         this.movePiece(row, column)
       }
@@ -279,17 +279,17 @@ class ChessUI {
     pieceImageElement.addEventListener('click', (event) => {
       event.stopPropagation()
       if (event.ctrlKey) {
-        squareElement.classList.remove('highlight-green', 'highlight-yellow')
+        squareElement.classList.remove('highlight-green', 'highlight-lightblue')
         squareElement.classList.toggle('highlight-red')
         this.storeHighlight(row, column, 'highlight-red')
       } else if (event.altKey) {
-        squareElement.classList.remove('highlight-red', 'highlight-yellow')
+        squareElement.classList.remove('highlight-red', 'highlight-lightblue')
         squareElement.classList.toggle('highlight-green')
         this.storeHighlight(row, column, 'highlight-green')
       } else if (event.shiftKey) {
         squareElement.classList.remove('highlight-red', 'highlight-green')
-        squareElement.classList.toggle('highlight-yellow')
-        this.storeHighlight(row, column, 'highlight-yellow')
+        squareElement.classList.toggle('highlight-lightblue')
+        this.storeHighlight(row, column, 'highlight-lightblue')
       } else {
         this.handlePieceClick(row, column)
       }
