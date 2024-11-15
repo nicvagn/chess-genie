@@ -402,7 +402,7 @@ class ChessUI {
           const capturedRow = startX
           const capturedCol = column
           // Remove the pawn from the board at en-passant target
-          this.chessGame.board[capturedRow][capturedCol] = null
+          this.chessGame.removePiece(capturedRow, capturedCol)
         }
 
         // Check for pawn promotion
