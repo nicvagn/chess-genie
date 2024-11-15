@@ -1,4 +1,4 @@
-//chess.js
+// chess.js
 
 import { BLACK, PIECE_TYPES, WHITE, chess } from './chesslib.js'
 import { PlayStockfish } from './playstockfish.js'
@@ -137,18 +137,14 @@ class ChessUI {
 
   // Method called after player's move to request Stockfish's move
   stockfishMove() {
-    if (this.isBotGame) {
-      if (
-        this.isBlackPlaysAsBot &&
-        this.chessGame.currentPlayerTurn === BLACK
-      ) {
-        this.stockfishAIBlack.onPlayerMove(this.gameOver)
-      } else if (
-        this.isWhitePlaysAsBot &&
-        this.chessGame.currentPlayerTurn === WHITE
-      ) {
-        this.stockfishAIWhite.onPlayerMove(this.gameOver)
-      }
+    if (!this.isBotGame) return
+    if (this.isBlackPlaysAsBot && this.chessGame.currentPlayerTurn === BLACK) {
+      this.stockfishAIBlack.onPlayerMove(this.gameOver)
+    } else if (
+      this.isWhitePlaysAsBot &&
+      this.chessGame.currentPlayerTurn === WHITE
+    ) {
+      this.stockfishAIWhite.onPlayerMove(this.gameOver)
     }
   }
 
@@ -323,22 +319,22 @@ class ChessUI {
 
     // Array of promotion options with their corresponding piece types
     const promotionOptions = [
-      { id: 'promoteToQueen', piecetype: PIECE_TYPES.QUEEN },
-      { id: 'promoteToRook', piecetype: PIECE_TYPES.ROOK },
-      { id: 'promoteToBishop', piecetype: PIECE_TYPES.BISHOP },
-      { id: 'promoteToKnight', piecetype: PIECE_TYPES.KNIGHT },
+      { id: 'promoteToQueen', pieceType: PIECE_TYPES.QUEEN },
+      { id: 'promoteToRook', pieceType: PIECE_TYPES.ROOK },
+      { id: 'promoteToBishop', pieceType: PIECE_TYPES.BISHOP },
+      { id: 'promoteToKnight', pieceType: PIECE_TYPES.KNIGHT },
     ]
 
     // Loop through each promotion option and set event listeners
-    promotionOptions.forEach((option) => {
-      document.getElementById(option.id).onclick = () => {
+    promotionOptions.forEach(({ id, pieceType }) => {
+      document.getElementById(id).onclick = () => {
         this.chessGame.handlePawnPromotion(
           row,
           column,
           this.chessGame.currentPlayerTurn === WHITE
-            ? option.piecetype
-            : option.piecetype.toLowerCase(), // Adjust for black promotion
-        ) // Promote to the specified piece
+            ? pieceType
+            : pieceType.toLowerCase(), // Adjust for black promotion
+        )
         this.chessGame.removePiece(startX, startY)
         pawnPromotionModal.hide() // Close the modal
         this.renderBoard() // Refresh the board
@@ -412,10 +408,9 @@ class ChessUI {
         // Check for pawn promotion
         if (
           (row === 0 || row === 7) &&
-          (this.chessGame.getPiece(...this.selectedPiece) ===
-            PIECE_TYPES.PAWN ||
-            this.chessGame.getPiece(...this.selectedPiece) ===
-              PIECE_TYPES.PAWN.toLowerCase())
+          [PIECE_TYPES.PAWN, PIECE_TYPES.PAWN.toLowerCase()].includes(
+            this.chessGame.getPiece(...this.selectedPiece),
+          )
         ) {
           this.showPawnPromotionDialog(row, column)
           return
@@ -487,7 +482,6 @@ class ChessUI {
   }
 
   animateMove(pieceSquare, targetSquare) {
-    // Get the bounding rectangles for the start and target positions
     const targetRect = targetSquare.getBoundingClientRect()
     const startRect = pieceSquare.getBoundingClientRect()
 
@@ -497,15 +491,12 @@ class ChessUI {
     // Append the piece to the target square to set initial position
     targetSquare.appendChild(pieceSquare)
 
-    // Set the initial position using transforms
     pieceSquare.style.position = 'absolute' // Position the piece to allow transforms
 
-    // Position the piece at the starting square for animation
     pieceSquare.style.left = `${startRect.left - targetRect.left}px`
     pieceSquare.style.top = `${startRect.top - targetRect.top}px`
     pieceSquare.style.zIndex = 10 // Bring piece on top of everything
 
-    // Apply the translation to move the piece to the target square
     requestAnimationFrame(() => {
       pieceSquare.style.transition = 'transform 0.3s ease-in-out'
       pieceSquare.style.transform = `translate(${
@@ -513,9 +504,7 @@ class ChessUI {
       }px, ${targetRect.top - startRect.top}px)`
     })
 
-    // Reset the piece properties after the animation completes
     setTimeout(() => {
-      // Reset the piece properties after the animation
       pieceSquare.style.position = '' // Restore position
       pieceSquare.style.zIndex = '' // Reset z-index
       pieceSquare.style.transition = '' // Reset transition
@@ -530,21 +519,16 @@ class ChessUI {
       `.square[data-row='${startX}'][data-col='${startY}'] .piece`,
     )
 
-    // Calculate the target square's position
     const targetSquare = this.chessboardElement.querySelector(
       `.square[data-row='${row}'][data-col='${column}']`,
     )
 
-    // Ensure that we already have the piece to move, and not create duplicates
     if (!pieceSquare) {
       console.error('No piece found at the starting square.')
       return
     }
 
-    // Call the animateMove method to handle the animation
     this.animateMove(pieceSquare, targetSquare)
-
-    // Move the piece in the chessGame model
     this.chessGame.makeMove([startX, startY], [row, column])
   }
 }
