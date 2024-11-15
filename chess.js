@@ -180,6 +180,44 @@ class ChessUI {
     if (this.lastMove) {
       this.highlightMoveSquares()
     }
+
+    // Reapply highlights for selected squares
+    this.highlightStoredSquares()
+  }
+
+  highlightStoredSquares() {
+    // Loop through the highlighted squares and apply the class again
+    this.highlightedSquares.forEach((square) => {
+      const squareElement = this.chessboardElement.querySelector(
+        `.square[data-row='${square[0]}'][data-col='${square[1]}']`,
+      )
+      if (squareElement) {
+        squareElement.classList.add(square[2]) // square[2] should be the highlight class name (red, green, yellow)
+      }
+    })
+  }
+
+  storeHighlight(row, column, highlightClass) {
+    // Find the index of the existing highlight
+    const existingHighlightIndex = this.highlightedSquares.findIndex(
+      (highlight) => highlight[0] === row && highlight[1] === column,
+    )
+
+    if (existingHighlightIndex >= 0) {
+      // If found, check if the new class is the same as existing
+      if (
+        this.highlightedSquares[existingHighlightIndex][2] === highlightClass
+      ) {
+        // The same highlight class is already applied, so remove it
+        this.highlightedSquares.splice(existingHighlightIndex, 1)
+      } else {
+        // Update existing highlight class if it's a different one
+        this.highlightedSquares[existingHighlightIndex][2] = highlightClass // Update existing
+      }
+    } else {
+      // If not found, add new highlight
+      this.highlightedSquares.push([row, column, highlightClass])
+    }
   }
 
   createSquare(row, column) {
@@ -192,10 +230,10 @@ class ChessUI {
     squareElement.dataset.col = column
 
     // Create a text node to display the row, column
-    const coordText = document.createElement('span')
-    coordText.classList.add('coords')
-    coordText.textContent = `(${row}, ${column})`
-    squareElement.appendChild(coordText)
+    // const coordText = document.createElement('span')
+    // coordText.classList.add('coords')
+    // coordText.textContent = `(${row}, ${column})`
+    // squareElement.appendChild(coordText)
 
     const chessPiece = this.chessGame.getPiece(row, column)
 
@@ -212,7 +250,24 @@ class ChessUI {
       this.createPieceElement(squareElement, chessPiece, row, column)
     }
 
-    squareElement.addEventListener('click', () => this.movePiece(row, column))
+    squareElement.addEventListener('click', (event) => {
+      if (event.ctrlKey) {
+        squareElement.classList.remove('highlight-green', 'highlight-yellow')
+        squareElement.classList.toggle('highlight-red')
+        this.storeHighlight(row, column, 'highlight-red')
+      } else if (event.altKey) {
+        squareElement.classList.remove('highlight-red', 'highlight-yellow')
+        squareElement.classList.toggle('highlight-green')
+        this.storeHighlight(row, column, 'highlight-green')
+      } else if (event.shiftKey) {
+        squareElement.classList.remove('highlight-red', 'highlight-green')
+        squareElement.classList.toggle('highlight-yellow')
+        this.storeHighlight(row, column, 'highlight-yellow')
+      } else {
+        this.movePiece(row, column)
+      }
+    })
+
     this.chessboardElement.appendChild(squareElement)
   }
 
@@ -223,7 +278,21 @@ class ChessUI {
     pieceImageElement.classList.add('piece')
     pieceImageElement.addEventListener('click', (event) => {
       event.stopPropagation()
-      this.handlePieceClick(row, column)
+      if (event.ctrlKey) {
+        squareElement.classList.remove('highlight-green', 'highlight-yellow')
+        squareElement.classList.toggle('highlight-red')
+        this.storeHighlight(row, column, 'highlight-red')
+      } else if (event.altKey) {
+        squareElement.classList.remove('highlight-red', 'highlight-yellow')
+        squareElement.classList.toggle('highlight-green')
+        this.storeHighlight(row, column, 'highlight-green')
+      } else if (event.shiftKey) {
+        squareElement.classList.remove('highlight-red', 'highlight-green')
+        squareElement.classList.toggle('highlight-yellow')
+        this.storeHighlight(row, column, 'highlight-yellow')
+      } else {
+        this.handlePieceClick(row, column)
+      }
     })
     squareElement.appendChild(pieceImageElement)
   }
@@ -236,7 +305,7 @@ class ChessUI {
       return
     }
 
-    if (this.isValidPieceSelection(piece)) {
+    if (piece) {
       this.selectPiece(row, column)
     }
   }
@@ -247,13 +316,6 @@ class ChessUI {
       this.selectedPiece[0] === row &&
       this.selectedPiece[1] === column
     )
-  }
-
-  isValidPieceSelection(piece) {
-    if (!piece) return false // No piece in the square
-
-    const pieceColor = piece === piece.toUpperCase() ? WHITE : BLACK // Determine the color of the piece
-    return pieceColor === this.chessGame.currentPlayerTurn // Return true only if it's the correct player's turn
   }
 
   selectPiece(row, column) {
