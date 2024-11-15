@@ -15,15 +15,14 @@ class ChessGame {
   constructor(fenNotation) {
     const [board, playerTurn] = fenNotation.split(' ')
     this.currentPlayerTurn = playerTurn
-    this.piecePositions = this.initializeBoard(board) // Change from 2D array to object
-    this.enPassantTarget = null // Initialize en-passant target
-    this.boardHistory = [] // To track board position history
-    this.isDrawByRepetition = false // To track if a draw by repetition occurred
+    this.piecePositions = this.initializeBoard(board)
+    this.enPassantTarget = null
+    this.boardHistory = []
+    this.isDrawByRepetition = false
     this.repetitionCountTwoTracker = 0
-    this.fiftyMoveCounter = 0 // Initialize fifty-move counter
-    this.cachedValidMoves = {} // Cache for valid moves
+    this.fiftyMoveCounter = 0
+    this.cachedValidMoves = {}
 
-    // Use an object to encapsulate the state of various pieces
     this.pieceMovedStatus = {
       whiteKing: false,
       whiteKingsideRook: false,
@@ -42,12 +41,12 @@ class ChessGame {
       let fileIndex = 0
       for (const char of row) {
         if (isNaN(char)) {
-          const piece = char // this is a piece
+          const piece = char
           const position = `${rowIndex},${fileIndex}`
-          piecePositions[position] = piece // Place the piece in object hash
+          piecePositions[position] = piece
           fileIndex++
         } else {
-          fileIndex += parseInt(char, 10) // Skip squares
+          fileIndex += parseInt(char, 10)
         }
       }
     })
@@ -55,33 +54,30 @@ class ChessGame {
   }
 
   getPiece(x, y) {
-    return this.piecePositions[`${x},${y}`] || null // Access a piece
+    return this.piecePositions[`${x},${y}`] || null
   }
 
   setPiece(x, y, piece) {
     if (piece) {
-      this.piecePositions[`${x},${y}`] = piece // Set a piece
+      this.piecePositions[`${x},${y}`] = piece
     } else {
-      delete this.piecePositions[`${x},${y}`] // Remove a piece if null
+      delete this.piecePositions[`${x},${y}`]
     }
   }
 
   removePiece(x, y) {
-    this.setPiece(x, y, null) // Remove a piece
+    this.setPiece(x, y, null)
   }
 
   getPieceColor(piece) {
-    if (!piece) {
-      return null // If the piece is null, return null
-    }
-    return piece === piece.toUpperCase() ? WHITE : BLACK // Return WHITE for white, BLACK for black
+    if (!piece) return null
+    return piece === piece.toUpperCase() ? WHITE : BLACK
   }
 
   isPathClear(start, end) {
     const [startX, startY] = start
     const [endX, endY] = end
 
-    // Check if the positions are on the board
     if (!this.isOnBoard(start) || !this.isOnBoard(end)) return false
 
     const [stepX, stepY] = this.getStepDirection(start, end)
@@ -93,12 +89,12 @@ class ChessGame {
         !this.isOnBoard([currentX, currentY]) ||
         this.getPiece(currentX, currentY) !== null
       ) {
-        return false // If there's any piece in the way or out of bounds
+        return false
       }
       currentX += stepX
       currentY += stepY
     }
-    return true // Path is clear
+    return true
   }
 
   isOnBoard(position) {
@@ -217,16 +213,12 @@ class ChessGame {
   getPiecePosition(pieceName, playerColor) {
     const piece =
       playerColor === WHITE ? pieceName.toUpperCase() : pieceName.toLowerCase()
-    const positions = []
-    for (let position in this.piecePositions) {
-      if (this.piecePositions[position] === piece) {
-        positions.push(position.split(',').map(Number))
-      }
-    }
-    return positions
+    return Object.entries(this.piecePositions).reduce((positions, [pos, p]) => {
+      if (p === piece) positions.push(pos.split(',').map(Number))
+      return positions
+    }, [])
   }
 
-  // New method to cache valid moves
   getCachedValidMoves(position) {
     const key = `${position[0]},${position[1]}`
     if (this.cachedValidMoves[key]) {
@@ -234,7 +226,7 @@ class ChessGame {
     }
 
     const validMoves = this.getValidMoves(position)
-    this.cachedValidMoves[key] = validMoves // Cache the valid moves
+    this.cachedValidMoves[key] = validMoves
     return validMoves
   }
 
@@ -251,24 +243,23 @@ class ChessGame {
 
     return (
       deltaX <= 1 &&
-      deltaY <= 1 && // Move one square in any direction
-      (targetPiece === null || targetPieceColor !== currentPieceColor) // Target square empty or occupied by an enemy piece
+      deltaY <= 1 &&
+      (targetPiece === null || targetPieceColor !== currentPieceColor)
     )
   }
 
   isSquareAttacked(square) {
     const opponentColor = this.currentPlayerTurn === WHITE ? BLACK : WHITE
 
-    for (let position in this.piecePositions) {
+    for (const [position, piece] of Object.entries(this.piecePositions)) {
       const [x, y] = position.split(',').map(Number)
-      const piece = this.getPiece(x, y)
       if (piece && this.getPieceColor(piece) === opponentColor) {
         if (this.validatePieceMove(piece, [x, y], square)) {
-          return true // If any opponent's piece can attack the square
+          return true
         }
       }
     }
-    return false // No opponent's piece can attack the square
+    return false
   }
 
   canCastleKingside() {
@@ -282,7 +273,6 @@ class ChessGame {
   canCastle(side, playerColor) {
     const row = this.getRowForColor(playerColor)
 
-    // Check if the king and rook have moved
     const kingMoved =
       this.pieceMovedStatus[`${playerColor === WHITE ? 'white' : 'black'}King`]
     const rookMoved =
@@ -292,13 +282,12 @@ class ChessGame {
         }`
       ]
 
-    // Check if the path for castling is clear
     const pathClear =
       side === 'kingside'
-        ? this.isPathClear([row, 4], [row, 6]) // Check path for kingside castling
-        : this.isPathClear([row, 0], [row, 4]) // Check path for queenside castling
+        ? this.isPathClear([row, 4], [row, 6])
+        : this.isPathClear([row, 0], [row, 4])
 
-    return !kingMoved && !rookMoved && pathClear // Return true if neither piece has moved and the path is clear
+    return !kingMoved && !rookMoved && pathClear
   }
 
   getRowForColor(color) {
@@ -311,20 +300,20 @@ class ChessGame {
       const row = this.getRowForColor(this.currentPlayerTurn)
       if (start[0] === row && start[1] === 4) {
         if (end[0] === row && end[1] === 6) {
-          return 'kingside' // Kingside castling
+          return 'kingside'
         }
         if (end[0] === row && end[1] === 2) {
-          return 'queenside' // Queenside castling
+          return 'queenside'
         }
       }
     }
-    return null // Not a castling move
+    return null
   }
 
   castle(start, end) {
     const row = this.getRowForColor(this.currentPlayerTurn)
     const castlingType = this.isCastlingMove(start, end)
-    if (!castlingType) return // Exit if not a castling move
+    if (!castlingType) return
 
     const kingPosition = [row, 4]
     const rookPosition = castlingType === 'kingside' ? [row, 7] : [row, 0]
@@ -335,22 +324,19 @@ class ChessGame {
     const king = this.getPiece(...kingPosition)
     const rook = this.getPiece(...rookPosition)
 
-    if (this.isSquareAttacked(kingPosition)) return // If King is in check, abort castling
+    if (this.isSquareAttacked(kingPosition)) return
 
     const isFinalKingSquareAttacked = this.isPieceSafeAfterMove(
       kingPosition,
       finalKingSquare,
     )
-
     const isSquareBesideKingAttacked = this.isPieceSafeAfterMove(
       kingPosition,
       squareBesidesKing,
     )
 
-    // If the King's position is not safe, abort castling
     if (!isFinalKingSquareAttacked || !isSquareBesideKingAttacked) return
 
-    // Check specific path clearance for Kingside castling
     if (castlingType === 'kingside' && this.canCastleKingside()) {
       this.finalizeCastling(
         castlingType,
@@ -365,7 +351,6 @@ class ChessGame {
       return
     }
 
-    // Check specific path clearance for Queenside castling
     if (castlingType === 'queenside' && this.canCastleQueenside()) {
       this.finalizeCastling(
         castlingType,
@@ -390,12 +375,11 @@ class ChessGame {
     kingNewPosition,
     rookNewPosition,
   ) {
-    this.setPiece(...kingNewPosition, king) // Place King in the new position
-    this.setPiece(...rookNewPosition, rook) // Place Rook in the new position
-    this.removePiece(...kingInitialPosition) // Remove King from its initial position
-    this.removePiece(...rookInitialPosition) // Remove Rook from its initial position
+    this.setPiece(...kingNewPosition, king)
+    this.setPiece(...rookNewPosition, rook)
+    this.removePiece(...kingInitialPosition)
+    this.removePiece(...rookInitialPosition)
 
-    // Update the movability status for castling
     this.updateCastlingMoveStatus(castlingType)
   }
 
@@ -431,23 +415,22 @@ class ChessGame {
 
   switchTurn() {
     this.currentPlayerTurn = this.currentPlayerTurn === WHITE ? BLACK : WHITE
-    this.cachedValidMoves = {} // Clear cache on turn switch
+    this.cachedValidMoves = {}
   }
 
   validatePieceMove(piece, start, end) {
     if (!this.isOnBoard(start) || !this.isOnBoard(end)) {
-      return false // Invalid move if start or end is off the board
+      return false
     }
 
     const originalPiece = this.getPiece(start[0], start[1])
     const targetPiece = this.getPiece(end[0], end[1])
 
     if (originalPiece === null) {
-      return false // No piece to move
+      return false
     }
 
     if (this.isValidPieceMoveLogic(originalPiece, start, end)) {
-      // Temporarily move the piece
       this.setPiece(end[0], end[1], originalPiece)
       this.removePiece(start[0], start[1])
 
@@ -457,7 +440,6 @@ class ChessGame {
       )
       const isKingAttacked = !this.isSquareAttacked(kingPosition[0])
 
-      // Undo the temporary move
       this.setPiece(start[0], start[1], originalPiece)
       this.setPiece(end[0], end[1], targetPiece)
 
@@ -482,7 +464,7 @@ class ChessGame {
       case PIECE_TYPES.KING.toLowerCase():
         return this.isValidKingMove(start, end)
       default:
-        return false // Invalid piece type
+        return false
     }
   }
 
@@ -515,12 +497,10 @@ class ChessGame {
       throw new Error('Start or end position is out of bounds.')
     }
 
-    const deltaX = Math.abs(end[0] - start[0]) // Difference in rows
-    const deltaY = Math.abs(end[1] - start[1]) // Difference in columns
+    const deltaX = Math.abs(end[0] - start[0])
+    const deltaY = Math.abs(end[1] - start[1])
 
-    const dist = Math.max(deltaX, deltaY)
-
-    return { dist, piece }
+    return { dist: Math.max(deltaX, deltaY), piece }
   }
 
   makeMove(start, end) {
@@ -536,60 +516,44 @@ class ChessGame {
       throw new Error('Invalid move!')
     }
 
-    // Track if the move involved a pawn or capture
     if (
       piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() ||
       this.getPiece(end[0], end[1]) !== null
     ) {
-      this.fiftyMoveCounter = 0 // Reset counter on pawn move or capture
+      this.fiftyMoveCounter = 0
     } else {
-      this.fiftyMoveCounter++ // Increment counter otherwise
+      this.fiftyMoveCounter++
     }
 
     const boardState = this.getBoardState()
-    this.boardHistory.push(boardState) // Store the current board state in history
+    this.boardHistory.push(boardState)
 
-    // return if it's castling move
     if (this.isCastlingMove(start, end)) {
       return
     }
 
-    // Move the piece
     this.setPiece(end[0], end[1], piece)
     this.removePiece(start[0], start[1])
 
     this.trackPieceMovement(piece, playerColor, start)
-
-    // Handle en-passant
     this.handleEnPassantOnMove(piece, start, end)
-
-    // Check for 3-fold repetition
     this.checkThreeFoldRepetition(boardState)
 
-    // Switch turn
     this.switchTurn()
   }
 
-  // check if fifty-move rule applies
   isDrawByFiftyMoveRule() {
-    if (this.fiftyMoveCounter >= 100) {
-      return true // Draw by the fifty-move rule
-    }
-    return false // Not yet eligible for fifty-move draw
+    return this.fiftyMoveCounter >= 100
   }
 
   trackPieceMovement(piece, playerColor, start) {
     if (piece.toLowerCase() === PIECE_TYPES.KING.toLowerCase()) {
-      // King moved
       this.pieceMovedStatus[`${playerColor}King`] = true
     } else if (piece.toLowerCase() === PIECE_TYPES.ROOK.toLowerCase()) {
-      // Rook moved
       const row = this.getRowForColor(playerColor === 'white' ? WHITE : BLACK)
       if (start[0] === row && start[1] === 0) {
-        // Queenside rook
         this.pieceMovedStatus[`${playerColor}QueensideRook`] = true
       } else if (start[0] === row && start[1] === 7) {
-        // Kingside rook
         this.pieceMovedStatus[`${playerColor}KingsideRook`] = true
       }
     }
@@ -600,10 +564,9 @@ class ChessGame {
       piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() &&
       Math.abs(start[0] - end[0]) === 2
     ) {
-      // Save potential en-passant target
       this.enPassantTarget = [(start[0] + end[0]) / 2, end[1]]
     } else {
-      this.enPassantTarget = null // Clear en-passant target if not relevant
+      this.enPassantTarget = null
     }
   }
 
@@ -613,90 +576,82 @@ class ChessGame {
     ).length
 
     if (repetitionCount === 2) {
-      this.repetitionCountTwoTracker++ // Increment the counter
+      this.repetitionCountTwoTracker++
     }
     if (this.repetitionCountTwoTracker === 4) {
-      this.isDrawByRepetition = true // Mark draw by repetition
-      this.repetitionCountTwoTracker = 0 // Reset the tracker
+      this.isDrawByRepetition = true
+      this.repetitionCountTwoTracker = 0
     }
   }
 
   getBoardState() {
-    const pieceCount = Object.keys(this.piecePositions).length
-    return JSON.stringify(this.piecePositions) // Create a unique state string for the board
+    return JSON.stringify(this.piecePositions)
   }
 
   getFEN() {
     let fen = ''
 
-    // 1. Convert the board to FEN format
     for (let rank = 0; rank < 8; rank++) {
       let emptyCount = 0
       for (let file = 0; file < 8; file++) {
         const piece = this.getPiece(rank, file)
         if (piece) {
           if (emptyCount > 0) {
-            fen += emptyCount // Add empty squares if any
+            fen += emptyCount
             emptyCount = 0
           }
-          fen += piece // Add the piece
+          fen += piece
         } else {
           emptyCount++
         }
       }
       if (emptyCount > 0) {
-        fen += emptyCount // Add remaining empty squares if at the end of the row
+        fen += emptyCount
       }
       if (rank < 7) {
-        fen += '/' // Move to the next rank
+        fen += '/'
       }
     }
 
-    // 2. Active color
     fen += ` ${this.currentPlayerTurn === WHITE ? 'w' : 'b'}`
 
-    // 3. Castling rights
     const castlingRights = []
     if (
       !this.pieceMovedStatus.whiteKing &&
       !this.pieceMovedStatus.whiteKingsideRook
     ) {
-      castlingRights.push('K') // White can castle kingside
+      castlingRights.push('K')
     }
     if (
       !this.pieceMovedStatus.whiteKing &&
       !this.pieceMovedStatus.whiteQueensideRook
     ) {
-      castlingRights.push('Q') // White can castle queenside
+      castlingRights.push('Q')
     }
     if (
       !this.pieceMovedStatus.blackKing &&
       !this.pieceMovedStatus.blackKingsideRook
     ) {
-      castlingRights.push('k') // Black can castle kingside
+      castlingRights.push('k')
     }
     if (
       !this.pieceMovedStatus.blackKing &&
       !this.pieceMovedStatus.blackQueensideRook
     ) {
-      castlingRights.push('q') // Black can castle queenside
+      castlingRights.push('q')
     }
-    fen += ` ${castlingRights.join('') || '-'}` // Defaults to '-' if no castling rights
+    fen += ` ${castlingRights.join('') || '-'}`
 
-    // 4. En passant target square
     fen += ` ${
       this.enPassantTarget
         ? `${this.enPassantTarget[1]}${8 - this.enPassantTarget[0]}`
         : '-'
     }`
 
-    // 5. Halfmove clock (for fifty-move rule)
     fen += ` ${this.fiftyMoveCounter}`
+    fen += ` ${Math.floor(this.boardHistory.length / 2) + 1}`
 
-    // 6. Fullmove number
-    fen += ` ${Math.floor(this.boardHistory.length / 2) + 1}` // Adjust full move number
-
-    return fen // Return the FEN string
+    return fen
   }
 
   handlePawnPromotion(row, column, selectedPiece) {
@@ -733,16 +688,12 @@ class ChessGame {
       this.currentPlayerTurn,
     )
 
-    // If the king isn't in check, it can't be checkmate
     if (!this.isSquareAttacked(kingPosition[0])) return false
 
-    // Check if the king has any escape moves
     if (this.kingHasEscapeMoves(kingPosition[0])) return false
 
-    // Check if any piece can block the check
     if (this.isPieceCanBlockCheck(kingPosition[0])) return false
 
-    // If no valid moves can protect the king and the king can't move, it's checkmate
     return true
   }
 
@@ -760,66 +711,58 @@ class ChessGame {
             targetPiece === null ||
             this.getPieceColor(targetPiece) !== this.currentPlayerTurn
           ) {
-            // Check if the king moving to this square does not lead to check
             if (this.isPieceSafeAfterMove(kingPosition, [x, y])) {
-              return true // Escape move found
+              return true
             }
           }
         }
       }
     }
 
-    return false // No escape moves available
+    return false
   }
 
   isPieceSafeAfterMove(start, end) {
     const originalPiece = this.getPiece(start[0], start[1])
     const targetPiece = this.getPiece(end[0], end[1])
 
-    // Temporarily make the move
     this.setPiece(end[0], end[1], originalPiece)
     this.removePiece(start[0], start[1])
 
     const isStillSafe = !this.isSquareAttacked(end)
 
-    // Undo the temporary move
     this.removePiece(end[0], end[1])
     this.setPiece(start[0], start[1], originalPiece)
 
     if (targetPiece) {
-      this.setPiece(end[0], end[1], targetPiece) // Restore target piece
+      this.setPiece(end[0], end[1], targetPiece)
     }
 
     return isStillSafe
   }
 
   isPieceCanBlockCheck(kingPosition) {
-    for (let position in this.piecePositions) {
+    for (const [position, piece] of Object.entries(this.piecePositions)) {
       const [x, y] = position.split(',').map(Number)
-      const piece = this.getPiece(x, y)
       if (piece && this.getPieceColor(piece) === this.currentPlayerTurn) {
         const validMoves = this.getCachedValidMoves([x, y])
         for (const move of validMoves) {
-          // Temporarily make this move
           const originalTargetPiece = this.getPiece(move[0], move[1])
           this.setPiece(move[0], move[1], piece)
           this.removePiece(x, y)
 
           if (!this.isSquareAttacked(kingPosition)) {
-            // Move was deemed valid for blocking the check
-            // Restore the board
-            this.setPiece(x, y, piece) // Move the piece back
-            this.setPiece(move[0], move[1], originalTargetPiece) // Restore target piece
-            return true // Block found
+            this.setPiece(x, y, piece)
+            this.setPiece(move[0], move[1], originalTargetPiece)
+            return true
           }
 
-          // Restore the board
-          this.setPiece(x, y, piece) // Move the piece back
-          this.setPiece(move[0], move[1], originalTargetPiece) // Restore target piece
+          this.setPiece(x, y, piece)
+          this.setPiece(move[0], move[1], originalTargetPiece)
         }
       }
     }
-    return false // No blocking moves available
+    return false
   }
 
   isStalemate() {
@@ -828,35 +771,32 @@ class ChessGame {
       this.currentPlayerTurn,
     )
     if (this.isSquareAttacked(kingPosition[0])) {
-      return false // Not stalemate as the king is in check
+      return false
     }
 
-    // Check for any legal moves available
-    for (let position in this.piecePositions) {
+    for (const [position, piece] of Object.entries(this.piecePositions)) {
       const [x, y] = position.split(',').map(Number)
-      const piece = this.getPiece(x, y)
       if (piece && this.getPieceColor(piece) === this.currentPlayerTurn) {
         const validMoves = this.getCachedValidMoves([x, y])
         if (validMoves.length > 0) {
-          return false // Found a valid move, so it's not stalemate
+          return false
         }
       }
     }
 
-    return true // No valid moves available, thus stalemate
+    return true
   }
 
-  // Method to convert move string like 'c5d5' into coordinates
   getCoordinatesFromMove(move) {
-    const startFile = move[0] // The first letter representing the starting file
-    const startRank = move[1] // The first number representing the starting rank
-    const endFile = move[2] // The second letter representing the ending file
-    const endRank = move[3] // The second number representing the ending rank
+    const startFile = move[0]
+    const startRank = move[1]
+    const endFile = move[2]
+    const endRank = move[3]
 
-    const startX = 8 - parseInt(startRank, 10) // Convert rank to array index (0-7)
-    const startY = startFile.charCodeAt(0) - 'a'.charCodeAt(0) // Convert file from letter to index
-    const endX = 8 - parseInt(endRank, 10) // Convert rank to array index (0-7)
-    const endY = endFile.charCodeAt(0) - 'a'.charCodeAt(0) // Convert file from letter to index
+    const startX = 8 - parseInt(startRank, 10)
+    const startY = startFile.charCodeAt(0) - 'a'.charCodeAt(0)
+    const endX = 8 - parseInt(endRank, 10)
+    const endY = endFile.charCodeAt(0) - 'a'.charCodeAt(0)
 
     return {
       start: [startX, startY],
@@ -879,7 +819,7 @@ class ChessGame {
       }
     }
 
-    return validMoves // Return an array of valid move positions
+    return validMoves
   }
 
   isDrawByInsufficientMaterial() {
@@ -888,7 +828,6 @@ class ChessGame {
   }
 
   countPieces() {
-    // Initialize counts for both colors
     const counts = {
       w: { total: 0, bishops: 0, knights: 0, rooks: 0, pawns: 0, king: 1 },
       b: { total: 0, bishops: 0, knights: 0, rooks: 0, pawns: 0, king: 1 },
@@ -905,12 +844,10 @@ class ChessGame {
       [PIECE_TYPES.PAWN.toLowerCase()]: 'pawns',
     }
 
-    for (let position in this.piecePositions) {
-      const color = this.getPieceColor(this.piecePositions[position])
+    for (const [position, piece] of Object.entries(this.piecePositions)) {
+      const color = this.getPieceColor(piece)
       counts[color].total++
 
-      // Determine the piece type
-      const piece = this.piecePositions[position]
       const capitalizedPiece =
         piece === piece.toUpperCase() ? piece : piece.toLowerCase()
       const pieceType = pieceTypeMap[capitalizedPiece]
@@ -977,13 +914,12 @@ class ChessGame {
     )
   }
 
-  // Simple representation of the board
   displayBoard() {
     const boardRepresentation = Array.from({ length: 8 }, () =>
       Array(8).fill('.'),
     )
 
-    for (let [pos, piece] of Object.entries(this.piecePositions)) {
+    for (const [pos, piece] of Object.entries(this.piecePositions)) {
       const [x, y] = pos.split(',').map(Number)
       boardRepresentation[x][y] = piece
     }
