@@ -22,7 +22,11 @@ class ChessGame {
     this.repetitionCountTwoTracker = 0
     this.fiftyMoveCounter = 0
     this.cachedValidMoves = {}
-    this.lastMove = null
+    this.lastMove = {
+      start: '',
+      end: '',
+    }
+    this.isKingInCheck = false
 
     this.pieceMovedStatus = {
       whiteKing: false,
@@ -526,12 +530,13 @@ class ChessGame {
     this.removePiece(start[0], start[1])
 
     this.lastMove = { start, end }
+    this.isCheck() ? (this.isKingInCheck = true) : (this.isKingInCheck = false)
 
-    this.isCheck()
     this.trackPieceMovement(piece, playerColor, start)
     this.handleEnPassantOnMove(piece, start, end)
     this.checkThreeFoldRepetition(boardState)
 
+    this.logMoveInSAN(start, end)
     this.switchTurn()
   }
 
@@ -645,6 +650,41 @@ class ChessGame {
     fen += ` ${Math.floor(this.boardHistory.length / 2) + 1}`
 
     return fen
+  }
+
+  logMoveInSAN(start, end) {
+    const startSquare = this.getPiece(start[0], start[1])
+    const endSquare = this.getPiece(end[0], end[1])
+    const pieceSymbol = endSquare.toUpperCase()
+    const startFile = String.fromCharCode(start[1] + 'a'.charCodeAt(0)) // Convert column index to file (a-h)
+    const startRank = 8 - start[0] // Convert row index to rank (1-8)
+    const endFile = String.fromCharCode(end[1] + 'a'.charCodeAt(0))
+    const endRank = 8 - end[0]
+
+    let sanMove = ''
+
+    if (this.getPiece(end[0], end[1]) !== null) {
+      // if it's a capture move
+      if (pieceSymbol === PIECE_TYPES.PAWN) {
+        sanMove = `${startFile}x${endFile}${endRank}`
+      } else {
+        sanMove = `${pieceSymbol}x${endFile}${endRank}`
+      }
+    } else {
+      //if it's not a capture move
+      if (pieceSymbol === PIECE_TYPES.PAWN) {
+        sanMove = `${endFile}${endRank}`
+      } else {
+        sanMove = `${pieceSymbol}${endFile}${endRank}`
+      }
+    }
+
+    if (this.isKingInCheck) {
+      sanMove += '+'
+    }
+
+    console.log(`Move in SAN: ${sanMove}`)
+    return sanMove
   }
 
   handlePawnPromotion(row, column, selectedPiece) {
