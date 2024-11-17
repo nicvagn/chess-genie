@@ -22,6 +22,7 @@ class ChessGame {
     this.repetitionCountTwoTracker = 0
     this.fiftyMoveCounter = 0
     this.cachedValidMoves = {}
+    this.lastMove = null
 
     this.pieceMovedStatus = {
       whiteKing: false,
@@ -254,7 +255,7 @@ class ChessGame {
     for (const [position, piece] of Object.entries(this.piecePositions)) {
       const [x, y] = position.split(',').map(Number)
       if (piece && this.getPieceColor(piece) === opponentColor) {
-        if (this.validatePieceMove(piece, [x, y], square)) {
+        if (this.validatePieceMove([x, y], square)) {
           return true
         }
       }
@@ -337,21 +338,10 @@ class ChessGame {
 
     if (!isFinalKingSquareAttacked || !isSquareBesideKingAttacked) return
 
-    if (castlingType === 'kingside' && this.canCastleKingside()) {
-      this.finalizeCastling(
-        castlingType,
-        king,
-        rook,
-        kingPosition,
-        rookPosition,
-        finalKingSquare,
-        finalRookSquare,
-      )
-      this.switchTurn()
-      return
-    }
-
-    if (castlingType === 'queenside' && this.canCastleQueenside()) {
+    if (
+      (castlingType === 'kingside' && this.canCastleKingside()) ||
+      (castlingType === 'queenside' && this.canCastleQueenside())
+    ) {
       this.finalizeCastling(
         castlingType,
         king,
@@ -418,7 +408,7 @@ class ChessGame {
     this.cachedValidMoves = {}
   }
 
-  validatePieceMove(piece, start, end) {
+  validatePieceMove(start, end) {
     if (!this.isOnBoard(start) || !this.isOnBoard(end)) {
       return false
     }
@@ -437,8 +427,8 @@ class ChessGame {
       const kingPosition = this.getPiecePosition(
         PIECE_TYPES.KING,
         this.currentPlayerTurn,
-      )
-      const isKingAttacked = !this.isSquareAttacked(kingPosition[0])
+      )[0]
+      const isKingAttacked = !this.isSquareAttacked(kingPosition)
 
       this.setPiece(start[0], start[1], originalPiece)
       this.setPiece(end[0], end[1], targetPiece)
@@ -489,7 +479,7 @@ class ChessGame {
       return false // Can't capture your own piece
     }
 
-    return this.validatePieceMove(piece, start, end)
+    return this.validatePieceMove(start, end)
   }
 
   calculateMoveDistance(start, end, piece) {
@@ -512,7 +502,7 @@ class ChessGame {
       throw new Error("It's not your turn!")
     }
 
-    if (!this.validatePieceMove(piece, start, end)) {
+    if (!this.validatePieceMove(start, end)) {
       throw new Error('Invalid move!')
     }
 
@@ -535,6 +525,9 @@ class ChessGame {
     this.setPiece(end[0], end[1], piece)
     this.removePiece(start[0], start[1])
 
+    this.lastMove = { start, end }
+
+    this.isCheck()
     this.trackPieceMovement(piece, playerColor, start)
     this.handleEnPassantOnMove(piece, start, end)
     this.checkThreeFoldRepetition(boardState)
@@ -682,17 +675,43 @@ class ChessGame {
     }
   }
 
+  isSquareAttackedByLastMove(targetSquare) {
+    const lastMoveEnd = this.lastMove.end
+    const movingPiece = this.getPiece(...lastMoveEnd)
+
+    // Check if the moving piece is valid and if the move was actually made
+    if (!movingPiece || !lastMoveEnd) {
+      return false
+    }
+
+    // Validate the movement of the piece to check if it can attack the target square
+    const movingPiecePosition = lastMoveEnd // The piece's start position is the end of its last move
+    return this.isValidPieceMoveLogic(
+      movingPiece,
+      movingPiecePosition,
+      targetSquare,
+    )
+  }
+
+  isCheck() {
+    const kingPosition = this.getPiecePosition(
+      PIECE_TYPES.KING,
+      this.currentPlayerTurn === WHITE ? BLACK : WHITE,
+    )[0]
+    return this.isSquareAttackedByLastMove(kingPosition)
+  }
+
   isCheckmate() {
     const kingPosition = this.getPiecePosition(
       PIECE_TYPES.KING,
       this.currentPlayerTurn,
-    )
+    )[0]
 
-    if (!this.isSquareAttacked(kingPosition[0])) return false
+    if (!this.isSquareAttacked(kingPosition)) return false
 
-    if (this.kingHasEscapeMoves(kingPosition[0])) return false
+    if (this.kingHasEscapeMoves(kingPosition)) return false
 
-    if (this.isPieceCanBlockCheck(kingPosition[0])) return false
+    if (this.isPieceCanBlockCheck(kingPosition)) return false
 
     return true
   }
@@ -769,8 +788,8 @@ class ChessGame {
     const kingPosition = this.getPiecePosition(
       PIECE_TYPES.KING,
       this.currentPlayerTurn,
-    )
-    if (this.isSquareAttacked(kingPosition[0])) {
+    )[0]
+    if (this.isSquareAttacked(kingPosition)) {
       return false
     }
 
