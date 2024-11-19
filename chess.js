@@ -439,7 +439,7 @@ class ChessUI {
     if (isValidMove) {
       try {
         // Check for draw by threefold repetition before executing the move
-        if (this.chessGame.isDrawByRepetition === true) {
+        if (this.chessGame.isDrawByThreefoldRepetition()) {
           setTimeout(() => {
             alert('Draw by 3-fold repetition!')
           }, 350) // 1000 milliseconds = 1 seconds

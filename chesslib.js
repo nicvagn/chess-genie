@@ -18,15 +18,13 @@ class ChessGame {
     this.piecePositions = this.initializeBoard(board)
     this.enPassantTarget = null
     this.boardHistory = []
-    this.isDrawByRepetition = false
-    this.repetitionCountTwoTracker = 0
+    this.positionHistory = []
     this.fiftyMoveCounter = 0
     this.cachedValidMoves = {}
     this.lastMove = {
       start: '',
       end: '',
     }
-    this.isKingInCheck = false
 
     this.pieceMovedStatus = {
       whiteKing: false,
@@ -413,16 +411,12 @@ class ChessGame {
   }
 
   validatePieceMove(start, end) {
-    if (!this.isOnBoard(start) || !this.isOnBoard(end)) {
-      return false
-    }
+    if (!this.isOnBoard(start) || !this.isOnBoard(end)) return false
 
     const originalPiece = this.getPiece(start[0], start[1])
     const targetPiece = this.getPiece(end[0], end[1])
 
-    if (originalPiece === null) {
-      return false
-    }
+    if (originalPiece === null) return false // No piece at start
 
     if (this.isValidPieceMoveLogic(originalPiece, start, end)) {
       this.setPiece(end[0], end[1], originalPiece)
@@ -464,24 +458,14 @@ class ChessGame {
 
   isValidMove(start, end) {
     const piece = this.getPiece(start[0], start[1])
-
-    if (piece === null) {
-      return false // No piece at start
-    }
+    if (piece === null) return false // No piece at start
 
     const pieceColor = this.getPieceColor(piece)
-
-    if (pieceColor !== this.currentPlayerTurn) {
-      return false // Not the piece's turn
-    }
+    if (pieceColor !== this.currentPlayerTurn) return false // Not the piece's turn
 
     const targetPiece = this.getPiece(end[0], end[1])
-    if (
-      targetPiece !== null &&
-      this.getPieceColor(targetPiece) === pieceColor
-    ) {
+    if (targetPiece !== null && this.getPieceColor(targetPiece) === pieceColor)
       return false // Can't capture your own piece
-    }
 
     return this.validatePieceMove(start, end)
   }
@@ -502,13 +486,10 @@ class ChessGame {
     const pieceColor = this.getPieceColor(piece)
     const playerColor = this.currentPlayerTurn === WHITE ? 'white' : 'black'
 
-    if (pieceColor !== this.currentPlayerTurn) {
+    if (pieceColor !== this.currentPlayerTurn)
       throw new Error("It's not your turn!")
-    }
 
-    if (!this.validatePieceMove(start, end)) {
-      throw new Error('Invalid move!')
-    }
+    if (!this.validatePieceMove(start, end)) throw new Error('Invalid move!')
 
     if (
       piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() ||
@@ -522,21 +503,21 @@ class ChessGame {
     const boardState = this.getBoardState()
     this.boardHistory.push(boardState)
 
-    if (this.isCastlingMove(start, end)) {
-      return
-    }
+    const positionState = this.getFEN().split(' ')[0]
+    this.positionHistory.push(positionState)
+
+    if (this.isCastlingMove(start, end)) return
+
+    this.isDrawByThreefoldRepetition()
 
     this.setPiece(end[0], end[1], piece)
     this.removePiece(start[0], start[1])
 
     this.lastMove = { start, end }
-    this.isCheck() ? (this.isKingInCheck = true) : (this.isKingInCheck = false)
 
     this.trackPieceMovement(piece, playerColor, start)
     this.handleEnPassantOnMove(piece, start, end)
-    this.checkThreeFoldRepetition(boardState)
 
-    this.logMoveInSAN(start, end)
     this.switchTurn()
   }
 
@@ -568,22 +549,27 @@ class ChessGame {
     }
   }
 
-  checkThreeFoldRepetition(boardState) {
-    const repetitionCount = this.boardHistory.filter(
-      (state) => state === boardState,
-    ).length
-
-    if (repetitionCount === 2) {
-      this.repetitionCountTwoTracker++
-    }
-    if (this.repetitionCountTwoTracker === 4) {
-      this.isDrawByRepetition = true
-      this.repetitionCountTwoTracker = 0
-    }
-  }
-
   getBoardState() {
     return JSON.stringify(this.piecePositions)
+  }
+
+  isDrawByThreefoldRepetition() {
+    const positionCount = {}
+    // Count occurrences of each FEN position
+    for (const position of this.positionHistory) {
+      positionCount[position] = (positionCount[position] || 0) + 1
+    }
+    // New object to store positions that appear exactly twice
+    const finalFour = {}
+    // Find positions that are counted exactly twice
+    for (const [position, count] of Object.entries(positionCount)) {
+      if (count === 2) {
+        finalFour[position] = count
+      }
+    }
+
+    // Check if there are four values in finalFour
+    return Object.keys(finalFour).length >= 4
   }
 
   getFEN() {
@@ -650,41 +636,6 @@ class ChessGame {
     fen += ` ${Math.floor(this.boardHistory.length / 2) + 1}`
 
     return fen
-  }
-
-  logMoveInSAN(start, end) {
-    const startSquare = this.getPiece(start[0], start[1])
-    const endSquare = this.getPiece(end[0], end[1])
-    const pieceSymbol = endSquare.toUpperCase()
-    const startFile = String.fromCharCode(start[1] + 'a'.charCodeAt(0)) // Convert column index to file (a-h)
-    const startRank = 8 - start[0] // Convert row index to rank (1-8)
-    const endFile = String.fromCharCode(end[1] + 'a'.charCodeAt(0))
-    const endRank = 8 - end[0]
-
-    let sanMove = ''
-
-    if (this.getPiece(end[0], end[1]) !== null) {
-      // if it's a capture move
-      if (pieceSymbol === PIECE_TYPES.PAWN) {
-        sanMove = `${startFile}x${endFile}${endRank}`
-      } else {
-        sanMove = `${pieceSymbol}x${endFile}${endRank}`
-      }
-    } else {
-      //if it's not a capture move
-      if (pieceSymbol === PIECE_TYPES.PAWN) {
-        sanMove = `${endFile}${endRank}`
-      } else {
-        sanMove = `${pieceSymbol}${endFile}${endRank}`
-      }
-    }
-
-    if (this.isKingInCheck) {
-      sanMove += '+'
-    }
-
-    console.log(`Move in SAN: ${sanMove}`)
-    return sanMove
   }
 
   handlePawnPromotion(row, column, selectedPiece) {
@@ -997,9 +948,10 @@ class ChessGame {
 // 5Bnk/8/6K1/8/8/8/8/8 w - - 0 1 - insufficient material position
 // 2n/1P/4k3/1p3p2/7p/P1P2P1K/4p/3N w - - 0 41 - pawn promotion position
 // r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1 - castling position
+// 6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28 - 3-fold-rep
 
 // https://lichess.org/3KkqKLdO#66 3-fold rep testing
 // https://lichess.org/games/search?perf=6&mode=1&durationMin=600&durationMax=600&status=34&dateMin=2024-10-28&dateMax=2024-10-29&sort.field=d&sort.order=desc#results
 
-const initialFEN = 'r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1'
+const initialFEN = 'q4rk1/5p1p/8/5Q2/8/6P1/p4P1P/6K1 w - - 0 1'
 export const chess = new ChessGame(initialFEN)
