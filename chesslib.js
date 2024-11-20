@@ -236,10 +236,8 @@ class ChessGame {
   isValidKingMove(start, end) {
     const deltaX = Math.abs(start[0] - end[0])
     const deltaY = Math.abs(start[1] - end[1])
-    const targetPiece = this.getPiece(end[0], end[1])
-    const currentPieceColor = this.getPieceColor(
-      this.getPiece(start[0], start[1]),
-    )
+    const targetPiece = this.getPiece(...end)
+    const currentPieceColor = this.getPieceColor(this.getPiece(...start))
     const targetPieceColor = targetPiece
       ? this.getPieceColor(targetPiece)
       : null
@@ -298,7 +296,7 @@ class ChessGame {
   }
 
   isCastlingMove(start, end) {
-    const piece = this.getPiece(start[0], start[1])
+    const piece = this.getPiece(...start)
     if (piece && [PIECE_TYPES.KING].includes(piece.toUpperCase())) {
       const row = this.getRowForColor(this.currentPlayerTurn)
       if (start[0] === row && start[1] === 4) {
@@ -413,14 +411,14 @@ class ChessGame {
   validatePieceMove(start, end) {
     if (!this.isOnBoard(start) || !this.isOnBoard(end)) return false
 
-    const originalPiece = this.getPiece(start[0], start[1])
-    const targetPiece = this.getPiece(end[0], end[1])
+    const originalPiece = this.getPiece(...start)
+    const targetPiece = this.getPiece(...end)
 
     if (originalPiece === null) return false // No piece at start
 
     if (this.isValidPieceMoveLogic(originalPiece, start, end)) {
-      this.setPiece(end[0], end[1], originalPiece)
-      this.removePiece(start[0], start[1])
+      this.setPiece(...end, originalPiece)
+      this.removePiece(...start)
 
       const kingPosition = this.getPiecePosition(
         PIECE_TYPES.KING,
@@ -428,8 +426,8 @@ class ChessGame {
       )[0]
       const isKingAttacked = !this.isSquareAttacked(kingPosition)
 
-      this.setPiece(start[0], start[1], originalPiece)
-      this.setPiece(end[0], end[1], targetPiece)
+      this.setPiece(...start, originalPiece)
+      this.setPiece(...end, targetPiece)
 
       return isKingAttacked
     }
@@ -457,15 +455,15 @@ class ChessGame {
   }
 
   isValidMove(start, end) {
-    const piece = this.getPiece(start[0], start[1])
-    if (piece === null) return false // No piece at start
-
+    const piece = this.getPiece(...start)
+    const targetPiece = this.getPiece(...end)
     const pieceColor = this.getPieceColor(piece)
-    if (pieceColor !== this.currentPlayerTurn) return false // Not the piece's turn
+    const targetPieceColor = this.getPieceColor(targetPiece)
 
-    const targetPiece = this.getPiece(end[0], end[1])
-    if (targetPiece !== null && this.getPieceColor(targetPiece) === pieceColor)
-      return false // Can't capture your own piece
+    // No piece at start & Not the piece's turn
+    if (!piece || pieceColor !== this.currentPlayerTurn) return false
+    // Can't capture your own piece
+    if (targetPiece && targetPieceColor === pieceColor) return false
 
     return this.validatePieceMove(start, end)
   }
@@ -482,7 +480,7 @@ class ChessGame {
   }
 
   makeMove(start, end) {
-    const piece = this.getPiece(start[0], start[1])
+    const piece = this.getPiece(...start)
     const pieceColor = this.getPieceColor(piece)
     const playerColor = this.currentPlayerTurn === WHITE ? 'white' : 'black'
 
@@ -493,7 +491,7 @@ class ChessGame {
 
     if (
       piece.toLowerCase() === PIECE_TYPES.PAWN.toLowerCase() ||
-      this.getPiece(end[0], end[1]) !== null
+      this.getPiece(...end) !== null
     ) {
       this.fiftyMoveCounter = 0
     } else {
@@ -508,10 +506,11 @@ class ChessGame {
 
     if (this.isCastlingMove(start, end)) return
 
-    this.isDrawByThreefoldRepetition()
-
-    this.setPiece(end[0], end[1], piece)
-    this.removePiece(start[0], start[1])
+    // Call the new method to get the SAN of the last move
+    const sanMove = this.getSanMove(start, end)
+    console.log(`Move made: ${sanMove}`) // Log the SAN move, you can also save it to a history array if needed
+    this.setPiece(...end, piece)
+    this.removePiece(...start)
 
     this.lastMove = { start, end }
 
@@ -638,6 +637,68 @@ class ChessGame {
     return fen
   }
 
+  getSanMove(start, end) {
+    const piece = this.getPiece(...start)
+    const pieceType = piece.toUpperCase()
+    const startFile = String.fromCharCode(start[1] + 'a'.charCodeAt(0))
+    const startRank = 8 - start[0]
+    const endFile = String.fromCharCode(end[1] + 'a'.charCodeAt(0))
+    const endRank = 8 - end[0]
+
+    // Determine if it's a capture
+    const targetPiece = this.getPiece(...end)
+    const isCapture = targetPiece !== null
+
+    // Determine if it's a pawn move and if we need to indicate the file or not
+    const isPawnMove = pieceType === PIECE_TYPES.PAWN
+
+    // Start constructing move notation
+    let san = ''
+
+    // Add the piece identifier to the SAN (ex: N, B, R, etc.)
+    if (!isPawnMove) {
+      san += pieceType // Add piece type (K, Q, R, B, N)
+
+      // Determine disambiguation
+      const samePiecePositions = this.getPiecePosition(
+        pieceType,
+        this.currentPlayerTurn,
+      )
+      const targetSquare = end
+
+      const piecesAvailableToMove = samePiecePositions.filter((pos) => {
+        return this.isValidMove(pos, targetSquare)
+      })
+
+      if (piecesAvailableToMove.length > 1) {
+        // More than one piece can move to this square, need to disambiguate
+        const isSameFile = piecesAvailableToMove.every(
+          (pos) => pos[1] === start[1],
+        )
+        if (isSameFile) {
+          // Both pieces are on the same file, use rank for disambiguation
+          san += startRank // Add rank of the moving piece
+        } else {
+          // Use the file of the moving piece
+          san += startFile // Add file of the moving piece
+        }
+      }
+    }
+
+    // If it's a capture, mark with 'x'
+    if (isCapture) {
+      if (isPawnMove) {
+        san += startFile // Pawns specify their starting file
+      }
+      san += 'x' // Capture notation
+    }
+
+    // Add the end position
+    san += `${endFile}${endRank}`
+
+    return san
+  }
+
   handlePawnPromotion(row, column, selectedPiece) {
     const validPiecesWhite = [
       PIECE_TYPES.QUEEN,
@@ -733,19 +794,19 @@ class ChessGame {
   }
 
   isPieceSafeAfterMove(start, end) {
-    const originalPiece = this.getPiece(start[0], start[1])
-    const targetPiece = this.getPiece(end[0], end[1])
+    const originalPiece = this.getPiece(...start)
+    const targetPiece = this.getPiece(...end)
 
-    this.setPiece(end[0], end[1], originalPiece)
-    this.removePiece(start[0], start[1])
+    this.setPiece(...end, originalPiece)
+    this.removePiece(...start)
 
     const isStillSafe = !this.isSquareAttacked(end)
 
-    this.removePiece(end[0], end[1])
-    this.setPiece(start[0], start[1], originalPiece)
+    this.removePiece(...end)
+    this.setPiece(...start, originalPiece)
 
     if (targetPiece) {
-      this.setPiece(end[0], end[1], targetPiece)
+      this.setPiece(...end, targetPiece)
     }
 
     return isStillSafe
@@ -953,5 +1014,5 @@ class ChessGame {
 // https://lichess.org/3KkqKLdO#66 3-fold rep testing
 // https://lichess.org/games/search?perf=6&mode=1&durationMin=600&durationMax=600&status=34&dateMin=2024-10-28&dateMax=2024-10-29&sort.field=d&sort.order=desc#results
 
-const initialFEN = 'q4rk1/5p1p/8/5Q2/8/6P1/p4P1P/6K1 w - - 0 1'
+const initialFEN = '2n/1P/4k3/1p3p2/7p/P1P2P1K/4p/3N w - - 0 41'
 export const chess = new ChessGame(initialFEN)
