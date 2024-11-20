@@ -11,6 +11,55 @@ export const PIECE_TYPES = {
   PAWN: 'P',
 }
 
+class MoveValidator {
+  constructor(chessGame) {
+    this.chessGame = chessGame
+  }
+
+  validate(start, end) {
+    throw new Error('This method should be overridden!')
+  }
+}
+
+class PawnValidator extends MoveValidator {
+  validate(start, end) {
+    return this.chessGame.isValidPawnMove(start, end)
+  }
+}
+
+class RookValidator extends MoveValidator {
+  validate(start, end) {
+    return this.chessGame.isValidRookMove(start, end)
+  }
+}
+
+class KnightValidator extends MoveValidator {
+  validate(start, end) {
+    return this.chessGame.isValidKnightMove(start, end)
+  }
+}
+
+class BishopValidator extends MoveValidator {
+  validate(start, end) {
+    return this.chessGame.isValidBishopMove(start, end)
+  }
+}
+
+class QueenValidator extends MoveValidator {
+  validate(start, end) {
+    return this.chessGame.isValidQueenMove(start, end)
+  }
+}
+
+class KingValidator extends MoveValidator {
+  validate(start, end) {
+    if (this.chessGame.isCastlingMove(start, end)) {
+      return true // Handle castling as a valid move
+    }
+    return this.chessGame.isValidKingMove(start, end)
+  }
+}
+
 class ChessGame {
   constructor(fenNotation) {
     const [board, playerTurn] = fenNotation.split(' ')
@@ -436,22 +485,21 @@ class ChessGame {
   }
 
   isValidPieceMoveLogic(piece, start, end) {
-    switch (piece.toLowerCase()) {
-      case PIECE_TYPES.PAWN.toLowerCase():
-        return this.isValidPawnMove(start, end)
-      case PIECE_TYPES.ROOK.toLowerCase():
-        return this.isValidRookMove(start, end)
-      case PIECE_TYPES.KNIGHT.toLowerCase():
-        return this.isValidKnightMove(start, end)
-      case PIECE_TYPES.BISHOP.toLowerCase():
-        return this.isValidBishopMove(start, end)
-      case PIECE_TYPES.QUEEN.toLowerCase():
-        return this.isValidQueenMove(start, end)
-      case PIECE_TYPES.KING.toLowerCase():
-        return this.isValidKingMove(start, end)
-      default:
-        return false
+    const validators = {
+      [PIECE_TYPES.PAWN.toLowerCase()]: PawnValidator,
+      [PIECE_TYPES.ROOK.toLowerCase()]: RookValidator,
+      [PIECE_TYPES.KNIGHT.toLowerCase()]: KnightValidator,
+      [PIECE_TYPES.BISHOP.toLowerCase()]: BishopValidator,
+      [PIECE_TYPES.QUEEN.toLowerCase()]: QueenValidator,
+      [PIECE_TYPES.KING.toLowerCase()]: KingValidator,
     }
+
+    const validator = validators[piece.toLowerCase()]
+    if (!validator) return false
+
+    // Create an instance of the appropriate validator
+    const validatorInstance = new validator(this)
+    return validatorInstance.validate(start, end)
   }
 
   isValidMove(start, end) {
@@ -1014,5 +1062,5 @@ class ChessGame {
 // https://lichess.org/3KkqKLdO#66 3-fold rep testing
 // https://lichess.org/games/search?perf=6&mode=1&durationMin=600&durationMax=600&status=34&dateMin=2024-10-28&dateMax=2024-10-29&sort.field=d&sort.order=desc#results
 
-const initialFEN = '2n/1P/4k3/1p3p2/7p/P1P2P1K/4p/3N w - - 0 41'
+const initialFEN = 'r3kbnr/pppppppp/8/2q/8/8/PPPP2PP/RNBQK2R w KQkq - 0 1'
 export const chess = new ChessGame(initialFEN)
