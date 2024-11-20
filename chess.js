@@ -40,11 +40,36 @@ class ChessUI {
     this.flipChessboard()
 
     this.setupGameModeSelection()
+    this.setupScreenshotButton()
   }
 
   initializeBoard() {
     this.showRankFileLabels()
     this.renderBoard()
+  }
+
+  takeScreenshot() {
+    const chessboard = this.chessboardElement
+    const date = new Date()
+    const formattedDateTime = date.toLocaleString('en-IN')
+
+    htmlToImage
+      .toJpeg(chessboard)
+      .then((dataUrl) => {
+        const link = document.createElement('a')
+        link.download = `chess-genie-chessboard-${formattedDateTime}.jpeg`
+        link.href = dataUrl
+        link.click()
+      })
+      .catch((error) => {
+        console.error('oops, something went wrong!', error)
+      })
+  }
+  setupScreenshotButton() {
+    const takeScreenshotButton = document.getElementById('captureBtn')
+    takeScreenshotButton.addEventListener('click', () => {
+      this.takeScreenshot()
+    })
   }
 
   showRankFileLabels() {

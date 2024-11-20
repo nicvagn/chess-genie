@@ -195,7 +195,7 @@
     <div class="container-fluid">
       <div class="row position-relative">
         <div class="col pt-3">
-          <div class="chessboard-container">
+          <div id="chessboard-container" class="chessboard-container">
             <div id="chessboard" class="shadow-lg bg-body"></div>
             <div id="fileLabels" class="file-labels">
               <!-- File Labels (a-h) will be added dynamically -->
@@ -232,6 +232,14 @@
               type="button"
             >
               <i class="fa-solid fa-chess-pawn"></i>
+            </button>
+            <button
+              id="captureBtn"
+              class="btn btn-secondary m-1 btn-custom"
+              title="Save Chessboard Image"
+              type="button"
+            >
+              <i class="fa-solid fa-camera"></i>
             </button>
           </div>
         </div>
@@ -274,5 +282,6 @@
     <script src="js/bootstrap.bundle.min.js"></script>
     <script type="module" src="chess.js"></script>
     <script type="module" src="chesslib.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
   </body>
 </html>
