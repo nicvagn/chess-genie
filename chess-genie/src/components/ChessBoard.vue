@@ -6,10 +6,17 @@
           v-for="(cell, colIndex) in row"
           :key="colIndex"
           class="board-cell"
-          :class="{ light: (rowIndex + colIndex) % 2 === 0, dark: (rowIndex + colIndex) % 2 !== 0 }"
+          :class="{
+            light: (rowIndex + colIndex) % 2 === 0,
+            dark: (rowIndex + colIndex) % 2 !== 0,
+          }"
           @dragover.prevent
           @drop="onDrop(rowIndex, colIndex)"
         >
+          <div
+            v-if="validMoves.some((move) => move.row === rowIndex && move.col === colIndex)"
+            class="valid-move-indicator"
+          ></div>
           <img
             v-if="cell"
             :src="`../public/img/${cell}.svg`"
@@ -19,6 +26,7 @@
           />
         </div>
       </div>
+      <button @click="flipBoard">Flip Chessboard</button>
     </div>
   </div>
 </template>
@@ -42,10 +50,23 @@ export default {
 
     let draggedPiece = ref(null)
     let draggedFrom = ref(null)
+    const validMoves = ref([])
+    const isFlipped = ref(false)
 
     const onDrag = (item, rowIndex, colIndex) => {
       draggedPiece.value = item
       draggedFrom.value = rowIndex * 8 + colIndex // Calculate the index 0-63
+      // Clear previous valid moves
+      validMoves.value = []
+
+      // Calculate and highlight valid moves
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (isValidMove(item, rowIndex, colIndex, r, c, board.value)) {
+            validMoves.value.push({ row: r, col: c })
+          }
+        }
+      }
     }
 
     const onDrop = (rowIndex, colIndex) => {
@@ -55,8 +76,6 @@ export default {
 
         if (isValidMove(draggedPiece.value, fromRow, fromCol, rowIndex, colIndex, board.value)) {
           board.value[rowIndex][colIndex] = draggedPiece.value
-
-          // Clear the original position of the piece
           board.value[fromRow][fromCol] = null
 
           // Clear the dragged piece
@@ -64,15 +83,27 @@ export default {
           draggedFrom.value = null
         } else {
           console.warn('Invalid move for', draggedPiece.value)
-          // Optionally, you can give feedback to the user about the invalid move
         }
       }
+
+      // Clear valid moves on drop
+      validMoves.value = []
+    }
+
+    const flipBoard = () => {
+      isFlipped.value = !isFlipped.value // Toggle the flipped state
+
+      // Optionally, you might want to reset the valid moves when flipping
+      validMoves.value = []
     }
 
     return {
       board,
       onDrag,
       onDrop,
+      validMoves,
+      flipBoard,
+      isFlipped,
     }
   },
 }
@@ -103,6 +134,15 @@ export default {
 
 .dark {
   background-color: rgb(181, 136, 99);
+}
+
+.valid-move-indicator {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background-color: rgba(54, 54, 54, 0.365);
+  z-index: 1;
 }
 
 .piece {

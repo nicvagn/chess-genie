@@ -13,7 +13,7 @@ export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board) => {
     case 'R':
       return validateRookMove(fromRow, fromCol, toRow, toCol, board)
     case 'N':
-      return validateKnightMove(fromRow, fromCol, toRow, toCol)
+      return validateKnightMove(fromRow, fromCol, toRow, toCol, board)
     case 'B':
       return validateBishopMove(fromRow, fromCol, toRow, toCol, board)
     case 'Q':
