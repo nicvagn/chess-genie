@@ -25,7 +25,7 @@
 
 <script>
 import { ref } from 'vue'
-import { isValidMove } from '../moveValidation'
+import { isValidMove } from '../moveValidation/moveValidation'
 
 export default {
   setup() {
