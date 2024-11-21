@@ -40,7 +40,7 @@ class ChessUI {
     this.flipChessboard()
 
     this.setupGameModeSelection()
-    this.setupScreenshotButton()
+    this.setupSaveChessboardImgButton()
   }
 
   initializeBoard() {
@@ -48,27 +48,23 @@ class ChessUI {
     this.renderBoard()
   }
 
-  takeScreenshot() {
+  setupSaveChessboardImgButton() {
+    const takeScreenshotButton = document.getElementById('captureBtn')
     const chessboard = this.chessboardElement
     const date = new Date()
     const formattedDateTime = date.toLocaleString('en-IN')
-
-    htmlToImage
-      .toJpeg(chessboard)
-      .then((dataUrl) => {
-        const link = document.createElement('a')
-        link.download = `chess-genie-chessboard-${formattedDateTime}.jpeg`
-        link.href = dataUrl
-        link.click()
-      })
-      .catch((error) => {
-        console.error('oops, something went wrong!', error)
-      })
-  }
-  setupScreenshotButton() {
-    const takeScreenshotButton = document.getElementById('captureBtn')
     takeScreenshotButton.addEventListener('click', () => {
-      this.takeScreenshot()
+      htmlToImage
+        .toJpeg(chessboard)
+        .then((dataUrl) => {
+          const link = document.createElement('a')
+          link.download = `chess-genie-chessboard-${formattedDateTime}.jpeg`
+          link.href = dataUrl
+          link.click()
+        })
+        .catch((error) => {
+          console.error('oops, something went wrong!', error)
+        })
     })
   }
 
