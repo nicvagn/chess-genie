@@ -6,20 +6,24 @@ import { validatePawnMove } from './validatePawnMove'
 import { validateQueenMove } from './validateQueenMove'
 import { validateRookMove } from './validateRookMove'
 
-export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board) => {
+export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board, isFlipped) => {
+  // Adjust for flipped board
+  const adjustedFromRow = isFlipped ? 7 - fromRow : fromRow
+  const adjustedToRow = isFlipped ? 7 - toRow : toRow
+
   switch (piece[1]) {
     case 'P':
-      return validatePawnMove(piece, fromRow, fromCol, toRow, toCol, board)
+      return validatePawnMove(piece, adjustedFromRow, fromCol, adjustedToRow, toCol, board)
     case 'R':
-      return validateRookMove(fromRow, fromCol, toRow, toCol, board)
+      return validateRookMove(adjustedFromRow, fromCol, adjustedToRow, toCol, board)
     case 'N':
-      return validateKnightMove(fromRow, fromCol, toRow, toCol, board)
+      return validateKnightMove(adjustedFromRow, fromCol, adjustedToRow, toCol, board)
     case 'B':
-      return validateBishopMove(fromRow, fromCol, toRow, toCol, board)
+      return validateBishopMove(adjustedFromRow, fromCol, adjustedToRow, toCol, board)
     case 'Q':
-      return validateQueenMove(fromRow, fromCol, toRow, toCol, board)
+      return validateQueenMove(adjustedFromRow, fromCol, adjustedToRow, toCol, board)
     case 'K':
-      return validateKingMove(fromRow, fromCol, toRow, toCol, board)
+      return validateKingMove(adjustedFromRow, fromCol, adjustedToRow, toCol, board)
     default:
       return false // Invalid piece type
   }

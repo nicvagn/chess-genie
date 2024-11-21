@@ -11,17 +11,28 @@
             dark: (rowIndex + colIndex) % 2 !== 0,
           }"
           @dragover.prevent
-          @drop="onDrop(rowIndex, colIndex)"
+          @drop="onDrop(isFlipped ? 7 - rowIndex : rowIndex, colIndex)"
         >
           <div
-            v-if="validMoves.some((move) => move.row === rowIndex && move.col === colIndex)"
+            v-if="
+              validMoves.some(
+                (move) =>
+                  move.row === (isFlipped ? 7 - rowIndex : rowIndex) && move.col === colIndex,
+              )
+            "
             class="valid-move-indicator"
           ></div>
           <img
-            v-if="cell"
-            :src="`../public/img/${cell}.svg`"
+            v-if="(isFlipped ? board[7 - rowIndex][colIndex] : cell) !== null"
+            :src="`../public/img/${isFlipped ? board[7 - rowIndex][colIndex] : cell}.svg`"
             :draggable="true"
-            @drag="onDrag(cell, rowIndex, colIndex)"
+            @drag="
+              onDrag(
+                isFlipped ? board[7 - rowIndex][colIndex] : cell,
+                isFlipped ? 7 - rowIndex : rowIndex,
+                colIndex,
+              )
+            "
             class="piece"
           />
         </div>
@@ -56,13 +67,17 @@ export default {
     const onDrag = (item, rowIndex, colIndex) => {
       draggedPiece.value = item
       draggedFrom.value = rowIndex * 8 + colIndex // Calculate the index 0-63
+      const adjustedRow = isFlipped.value ? 7 - rowIndex : rowIndex
       // Clear previous valid moves
       validMoves.value = []
 
       // Calculate and highlight valid moves
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
-          if (isValidMove(item, rowIndex, colIndex, r, c, board.value)) {
+          const adjustedToRow = isFlipped.value ? 7 - r : r
+          if (
+            isValidMove(item, adjustedRow, colIndex, adjustedToRow, c, board.value, isFlipped.value)
+          ) {
             validMoves.value.push({ row: r, col: c })
           }
         }
@@ -74,9 +89,22 @@ export default {
         const fromRow = Math.floor(draggedFrom.value / 8)
         const fromCol = draggedFrom.value % 8
 
-        if (isValidMove(draggedPiece.value, fromRow, fromCol, rowIndex, colIndex, board.value)) {
-          board.value[rowIndex][colIndex] = draggedPiece.value
-          board.value[fromRow][fromCol] = null
+        const adjustedFromRow = isFlipped.value ? 7 - fromRow : fromRow
+        const adjustedToRow = isFlipped.value ? 7 - rowIndex : rowIndex
+
+        if (
+          isValidMove(
+            draggedPiece.value,
+            adjustedFromRow,
+            fromCol,
+            adjustedToRow,
+            colIndex,
+            board.value,
+            isFlipped.value,
+          )
+        ) {
+          board.value[adjustedToRow][colIndex] = draggedPiece.value // Move to new position
+          board.value[adjustedFromRow][fromCol] = null // Clear old position
 
           // Clear the dragged piece
           draggedPiece.value = null
