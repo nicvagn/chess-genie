@@ -18,9 +18,14 @@ export const validateBishopMove = (fromRow, fromCol, toRow, toCol, board) => {
   }
 
   // Check for capturing (can't capture own pieces)
-  if (board[toRow][toCol] && board[toRow][toCol][0] === board[fromRow][fromCol][0]) {
-    return false
-  }
+  const fromPiece = board[fromRow][fromCol]
+  const toPiece = board[toRow][toCol]
+
+  const isSameColor =
+    toPiece && (fromPiece.toLowerCase() === toPiece.toLowerCase()) === (fromPiece === toPiece)
+
+  if (isSameColor) return false
+
   setEnPassantInfo(null)
   return true
 }

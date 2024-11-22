@@ -11,33 +11,21 @@
             dark: (rowIndex + colIndex) % 2 !== 0,
           }"
           @dragover.prevent
-          @drop="onDrop(isFlipped ? 7 - rowIndex : rowIndex, colIndex)"
+          @drop="onDrop(rowIndex, colIndex)"
         >
           <div
-            v-if="
-              validMoves.some(
-                (move) =>
-                  move.row === (isFlipped ? 7 - rowIndex : rowIndex) && move.col === colIndex,
-              )
-            "
+            v-if="validMoves.some((move) => move.row === rowIndex && move.col === colIndex)"
             class="valid-move-indicator"
           ></div>
           <img
-            v-if="(isFlipped ? board[7 - rowIndex][colIndex] : cell) !== null"
-            :src="`../public/img/${isFlipped ? board[7 - rowIndex][colIndex] : cell}.svg`"
+            v-if="cell"
+            :src="`../public/img/${chessPieceMap[cell]}.svg`"
             :draggable="true"
-            @drag="
-              onDrag(
-                isFlipped ? board[7 - rowIndex][colIndex] : cell,
-                isFlipped ? 7 - rowIndex : rowIndex,
-                colIndex,
-              )
-            "
+            @drag="onDrag(cell, rowIndex, colIndex)"
             class="piece"
           />
         </div>
       </div>
-      <button @click="flipBoard">Flip Chessboard</button>
     </div>
   </div>
 </template>
@@ -46,38 +34,63 @@
 import { ref } from 'vue'
 import { isValidMove } from '../moveValidation/moveValidation'
 
+const parseFEN = (fen) => {
+  const rows = fen.split(' ')[0].split('/')
+  const board = Array(8)
+    .fill(null)
+    .map(() => Array(8).fill(null))
+
+  rows.forEach((row, rowIndex) => {
+    let colIndex = 0
+    for (const char of row) {
+      if (isNaN(char)) {
+        // It's a piece
+        board[rowIndex][colIndex] = char
+        colIndex++
+      } else {
+        // It's a number, meaning empty squares
+        const emptySquares = parseInt(char, 10)
+        colIndex += emptySquares
+      }
+    }
+  })
+
+  return board
+}
+
 export default {
   setup() {
-    const board = ref([
-      ['bR', 'bN', 'bB', 'bQ', 'bK', 'bB', 'bN', 'bR'],
-      ['bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP', 'bP'],
-      [null, null, null, null, null, null, null, null],
-      [null, null, null, null, null, null, null, null],
-      [null, null, null, null, null, null, null, null],
-      [null, null, null, null, null, null, null, null],
-      ['wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP', 'wP'],
-      ['wR', 'wN', 'wB', 'wQ', 'wK', 'wB', 'wN', 'wR'],
-    ])
+    const fenString = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
+    const board = ref(parseFEN(fenString))
+    const chessPieceMap = {
+      K: 'wK',
+      Q: 'wQ',
+      R: 'wR',
+      B: 'wB',
+      N: 'wN',
+      P: 'wP',
+      k: 'bK',
+      q: 'bQ',
+      r: 'bR',
+      b: 'bB',
+      n: 'bN',
+      p: 'bP',
+    }
 
     let draggedPiece = ref(null)
     let draggedFrom = ref(null)
     const validMoves = ref([])
-    const isFlipped = ref(false)
 
     const onDrag = (item, rowIndex, colIndex) => {
-      draggedPiece.value = item
+      draggedPiece.value = chessPieceMap[item]
       draggedFrom.value = rowIndex * 8 + colIndex // Calculate the index 0-63
-      const adjustedRow = isFlipped.value ? 7 - rowIndex : rowIndex
       // Clear previous valid moves
       validMoves.value = []
 
       // Calculate and highlight valid moves
       for (let r = 0; r < 8; r++) {
         for (let c = 0; c < 8; c++) {
-          const adjustedToRow = isFlipped.value ? 7 - r : r
-          if (
-            isValidMove(item, adjustedRow, colIndex, adjustedToRow, c, board.value, isFlipped.value)
-          ) {
+          if (isValidMove(draggedPiece.value, rowIndex, colIndex, r, c, board.value)) {
             validMoves.value.push({ row: r, col: c })
           }
         }
@@ -88,23 +101,14 @@ export default {
       if (draggedPiece.value) {
         const fromRow = Math.floor(draggedFrom.value / 8)
         const fromCol = draggedFrom.value % 8
+        const piece =
+          draggedPiece.value[0] === 'w'
+            ? draggedPiece.value[1].toUpperCase()
+            : draggedPiece.value[1].toLowerCase()
 
-        const adjustedFromRow = isFlipped.value ? 7 - fromRow : fromRow
-        const adjustedToRow = isFlipped.value ? 7 - rowIndex : rowIndex
-
-        if (
-          isValidMove(
-            draggedPiece.value,
-            adjustedFromRow,
-            fromCol,
-            adjustedToRow,
-            colIndex,
-            board.value,
-            isFlipped.value,
-          )
-        ) {
-          board.value[adjustedToRow][colIndex] = draggedPiece.value // Move to new position
-          board.value[adjustedFromRow][fromCol] = null // Clear old position
+        if (isValidMove(draggedPiece.value, fromRow, fromCol, rowIndex, colIndex, board.value)) {
+          board.value[rowIndex][colIndex] = piece // Move to new position
+          board.value[fromRow][fromCol] = null // Clear old position
 
           // Clear the dragged piece
           draggedPiece.value = null
@@ -118,20 +122,12 @@ export default {
       validMoves.value = []
     }
 
-    const flipBoard = () => {
-      isFlipped.value = !isFlipped.value // Toggle the flipped state
-
-      // Optionally, you might want to reset the valid moves when flipping
-      validMoves.value = []
-    }
-
     return {
       board,
       onDrag,
       onDrop,
       validMoves,
-      flipBoard,
-      isFlipped,
+      chessPieceMap,
     }
   },
 }
