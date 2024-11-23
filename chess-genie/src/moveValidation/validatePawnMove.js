@@ -1,3 +1,4 @@
+// validatePawnMove.js
 let enPassantTarget = null
 
 export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCell, board) => {
@@ -43,8 +44,8 @@ export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCe
 
 export const setEnPassantTarget = (piece, fromRow, toRow, toCol) => {
   if (piece.toLowerCase() === piece.toLowerCase() && Math.abs(fromRow - toRow) === 2) {
-    enPassantTarget = [(fromRow + toRow) / 2, toCol]
+    return (enPassantTarget = [(fromRow + toRow) / 2, toCol])
   } else {
-    enPassantTarget = null
+    return (enPassantTarget = null)
   }
 }

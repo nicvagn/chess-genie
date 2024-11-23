@@ -1,3 +1,4 @@
+<!-- ChessBoard.vue -->
 <template>
   <div id="app">
     <div class="board">
@@ -31,7 +32,7 @@
 </template>
 
 <script>
-import { getValidMoves, isValidMove } from '@/moveValidation/moveValidation'
+import { getValidMoves, isValidMove, validateEnPassantMove } from '@/moveValidation/moveValidation'
 import { ref } from 'vue'
 import { parseFEN } from './parseFEN'
 
@@ -88,6 +89,22 @@ export default {
             (currentPlayer.value === 'b' &&
               draggedPiece.value === draggedPiece.value.toLowerCase()))
         ) {
+          // Check for en passant
+          validateEnPassantMove(draggedPiece.value, draggedFrom.value.row, rowIndex, colIndex)
+          if (
+            validMoves.value.some((move) => move.row === rowIndex && move.col === colIndex) &&
+            Math.abs(draggedFrom.value.col - colIndex) === 1 &&
+            Math.abs(rowIndex - draggedFrom.value.row) === 1 &&
+            ((currentPlayer.value === 'w' && rowIndex === draggedFrom.value.row - 1) ||
+              (currentPlayer.value === 'b' && rowIndex === draggedFrom.value.row + 1))
+          ) {
+            // Determine the opponent pawn's position to remove
+            const opponentPawnRow = currentPlayer.value === 'w' ? rowIndex + 1 : rowIndex - 1
+            const opponentPawnCol = colIndex
+
+            // Remove the opponent's pawn
+            board.value[opponentPawnRow][opponentPawnCol] = null
+          }
           // Move the piece to the new square
           board.value[rowIndex][colIndex] = draggedPiece.value
           // Remove the piece from the original square
@@ -96,9 +113,10 @@ export default {
           draggedPiece.value = null
           // Switch player turn
           switchTurn()
+        } else {
+          validMoves.value = []
         }
       }
-      // Clear valid moves on drop
       validMoves.value = []
     }
 
