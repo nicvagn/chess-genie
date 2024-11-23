@@ -2,7 +2,7 @@
 import { validateBishopMove } from './validateBishopMove'
 import { validateKingMove } from './validateKingMove'
 import { validateKnightMove } from './validateKnightMove'
-import { setEnPassantTarget, validatePawnMove } from './validatePawnMove'
+import { validatePawnMove } from './validatePawnMove'
 import { validateQueenMove } from './validateQueenMove'
 import { validateRookMove } from './validateRookMove'
 
@@ -48,8 +48,4 @@ export const getValidMoves = (piece, row, col, board) => {
     }
   }
   return validMoves
-}
-
-export const validateEnPassantMove = (piece, fromRow, toRow, toCol) => {
-  setEnPassantTarget(piece, fromRow, toRow, toCol)
 }

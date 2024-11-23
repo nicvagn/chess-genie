@@ -1,5 +1,4 @@
 // validatePawnMove.js
-let enPassantTarget = null
 
 export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCell, board) => {
   const direction = piece === 'P' ? -1 : 1 // White up (-1), Black down (+1)
@@ -27,25 +26,5 @@ export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCe
   )
     return true
 
-  // en-passant move
-  if (
-    enPassantTarget &&
-    enPassantTarget[0] === toRow &&
-    enPassantTarget[1] === toCol &&
-    targetCell === null &&
-    toRow === fromRow + direction &&
-    Math.abs(toCol - fromCol) === 1
-  ) {
-    return true
-  }
-
   return false
-}
-
-export const setEnPassantTarget = (piece, fromRow, toRow, toCol) => {
-  if (piece.toLowerCase() === piece.toLowerCase() && Math.abs(fromRow - toRow) === 2) {
-    return (enPassantTarget = [(fromRow + toRow) / 2, toCol])
-  } else {
-    return (enPassantTarget = null)
-  }
 }
