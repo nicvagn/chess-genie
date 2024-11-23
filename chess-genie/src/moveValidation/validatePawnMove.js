@@ -32,7 +32,7 @@ export const validatePawnMove = (
 
   // En passant
   if (toRow === fromRow + direction && Math.abs(toCol - fromCol) === 1 && targetCell === null) {
-    const targetRow = piece === 'P' ? fromRow : fromRow + 1 // For black, we need to check the row behind
+    const targetRow = piece === 'P' ? fromRow : fromRow // It remains the same for both color pawns
 
     // Ensure lastMove is defined
     if (lastMove) {
