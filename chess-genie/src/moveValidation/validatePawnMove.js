@@ -18,12 +18,7 @@ export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCe
     return true
 
   // capture move
-  if (
-    toRow === fromRow + direction &&
-    Math.abs(toCol - fromCol) === 1 &&
-    targetCell !== null &&
-    targetCell.toLowerCase() !== piece
-  )
+  if (toRow === fromRow + direction && Math.abs(toCol - fromCol) === 1 && targetCell !== null)
     return true
 
   return false
