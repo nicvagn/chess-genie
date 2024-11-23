@@ -13,6 +13,10 @@
           @dragover.prevent
           @drop="onDrop(rowIndex, colIndex)"
         >
+          <div
+            v-if="validMoves.some((move) => move.row === rowIndex && move.col === colIndex)"
+            class="valid-move-indicator"
+          ></div>
           <img
             v-if="cell"
             :src="`../public/img/${chessPieceMap[cell]}.svg`"
@@ -27,45 +31,9 @@
 </template>
 
 <script>
-import { isValidMove } from '@/moveValidation/moveValidation'
+import { getValidMoves, isValidMove } from '@/moveValidation/moveValidation'
 import { ref } from 'vue'
-
-const parseFEN = (fen) => {
-  const fenParts = fen.split(' ')
-
-  const rows = fenParts[0].split('/')
-  if (rows.length !== 8) {
-    throw new Error('Invalid FEN string: Must have exactly 8 rows.')
-  }
-  const board = Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null))
-
-  rows.forEach((row, rowIndex) => {
-    let colIndex = 0
-    for (const char of row) {
-      if (isNaN(char)) {
-        // It's a piece
-        board[rowIndex][colIndex] = char
-        colIndex++
-      } else {
-        // It's a number, meaning empty squares
-        const emptySquares = parseInt(char, 10)
-        colIndex += emptySquares
-      }
-    }
-  })
-
-  const activeColor = fenParts[1]
-  if (activeColor !== 'w' && activeColor !== 'b') {
-    throw new Error('Invalid FEN string: Active color must be "w" or "b".')
-  }
-
-  return {
-    board,
-    activeColor,
-  }
-}
+import { parseFEN } from './parseFEN'
 
 export default {
   setup() {
@@ -90,6 +58,7 @@ export default {
     const currentPlayer = ref(activeColor)
     const draggedPiece = ref(null)
     const draggedFrom = ref({ row: null, col: null })
+    const validMoves = ref([])
 
     const switchTurn = () => {
       currentPlayer.value = currentPlayer.value === 'w' ? 'b' : 'w'
@@ -98,6 +67,7 @@ export default {
     const onDrag = (piece, row, col) => {
       draggedPiece.value = piece
       draggedFrom.value = { row, col }
+      validMoves.value = getValidMoves(piece, row, col, board.value)
     }
 
     const onDrop = (rowIndex, colIndex) => {
@@ -128,6 +98,8 @@ export default {
           switchTurn()
         }
       }
+      // Clear valid moves on drop
+      validMoves.value = []
     }
 
     return {
@@ -136,6 +108,7 @@ export default {
       onDrop,
       chessPieceMap,
       currentPlayer,
+      validMoves,
     }
   },
 }
@@ -176,5 +149,14 @@ export default {
 
 .piece:active {
   cursor: grabbing;
+}
+
+.valid-move-indicator {
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background-color: rgba(54, 54, 54, 0.365);
+  z-index: 1;
 }
 </style>

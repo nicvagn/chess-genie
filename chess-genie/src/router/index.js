@@ -7,7 +7,7 @@ const router = createRouter({
       path: '/',
       name: 'chessboard',
 
-      component: () => import('../views/ChessboardView.vue'),
+      component: () => import('../views/ChessBoardView.vue'),
     },
   ],
 })

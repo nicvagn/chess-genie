@@ -1,5 +1,5 @@
 <script setup>
-import ChessBoard from '../components/ChessBoard.vue'
+import ChessBoard from '../components/chessBoard/ChessBoard.vue'
 </script>
 
 <template>

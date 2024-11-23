@@ -1,50 +1,50 @@
+let enPassantTarget = null
+
 export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCell, board) => {
-  // White pawn move
-  if (piece === 'P') {
-    if (fromRow - toRow === 1 && fromCol === toCol && targetCell === null) {
-      return true // Move forward one square
-    }
-    if (
-      fromRow === 6 && // Initial position for white pawn
-      fromRow - toRow === 2 &&
-      fromCol === toCol &&
-      targetCell === null &&
-      board[5][fromCol] === null // Ensuring the square in between is empty
-    ) {
-      return true // Move forward two squares
-    }
-    if (
-      fromRow - toRow === 1 &&
-      Math.abs(fromCol - toCol) === 1 &&
-      targetCell &&
-      targetCell.toLowerCase() !== piece
-    ) {
-      return true // Capture
-    }
-  }
-  // Black pawn move
-  if (piece === 'p') {
-    if (toRow - fromRow === 1 && fromCol === toCol && targetCell === null) {
-      return true // Move forward one square
-    }
-    if (
-      fromRow === 1 && // Initial position for black pawn
-      toRow - fromRow === 2 &&
-      fromCol === toCol &&
-      targetCell === null &&
-      board[2][fromCol] === null // Ensuring the square in between is empty
-    ) {
-      return true // Move forward two squares
-    }
-    if (
-      toRow - fromRow === 1 &&
-      Math.abs(fromCol - toCol) === 1 &&
-      targetCell &&
-      targetCell.toUpperCase() !== piece
-    ) {
-      return true // Capture
-    }
+  const direction = piece === 'P' ? -1 : 1 // White up (-1), Black down (+1)
+  const squareInBetween = board[fromRow + direction][fromCol]
+
+  // single move
+  if (toRow === fromRow + direction && toCol === fromCol && targetCell === null) return true
+
+  // double move
+  if (
+    toRow === fromRow + 2 * direction &&
+    toCol === fromCol &&
+    targetCell === null &&
+    squareInBetween === null &&
+    fromRow === (direction === -1 ? 6 : 1)
+  )
+    return true
+
+  // capture move
+  if (
+    toRow === fromRow + direction &&
+    Math.abs(toCol - fromCol) === 1 &&
+    targetCell !== null &&
+    targetCell.toLowerCase() !== piece
+  )
+    return true
+
+  // en-passant move
+  if (
+    enPassantTarget &&
+    enPassantTarget[0] === toRow &&
+    enPassantTarget[1] === toCol &&
+    targetCell === null &&
+    toRow === fromRow + direction &&
+    Math.abs(toCol - fromCol) === 1
+  ) {
+    return true
   }
 
   return false
+}
+
+export const setEnPassantTarget = (piece, fromRow, toRow, toCol) => {
+  if (piece.toLowerCase() === piece.toLowerCase() && Math.abs(fromRow - toRow) === 2) {
+    enPassantTarget = [(fromRow + toRow) / 2, toCol]
+  } else {
+    enPassantTarget = null
+  }
 }
