@@ -6,7 +6,7 @@ import { validatePawnMove } from './validatePawnMove'
 import { validateQueenMove } from './validateQueenMove'
 import { validateRookMove } from './validateRookMove'
 
-export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board) => {
+export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board, lastMove) => {
   const pieceType = piece.toLowerCase()
   const targetCell = board[toRow][toCol]
 
@@ -21,7 +21,7 @@ export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board) => {
 
   switch (pieceType) {
     case 'p': // Pawn
-      return validatePawnMove(piece, fromRow, fromCol, toRow, toCol, targetCell, board)
+      return validatePawnMove(piece, fromRow, fromCol, toRow, toCol, targetCell, board, lastMove)
     case 'r': // Rook
       return validateRookMove(fromRow, fromCol, toRow, toCol, board)
     case 'b': // Bishop
@@ -36,13 +36,13 @@ export const isValidMove = (piece, fromRow, fromCol, toRow, toCol, board) => {
   return false
 }
 
-export const getValidMoves = (piece, row, col, board) => {
+export const getValidMoves = (piece, row, col, board, lastMove) => {
   const validMoves = []
 
   // Loop through all possible moves of selected piece on the board
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      if (isValidMove(piece, row, col, r, c, board)) {
+      if (isValidMove(piece, row, col, r, c, board, lastMove)) {
         validMoves.push({ row: r, col: c })
       }
     }

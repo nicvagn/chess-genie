@@ -12,6 +12,7 @@ export const useChessBoardStore = defineStore('chess', () => {
   const validMoves = ref([])
   const draggedPiece = ref(null)
   const draggedFrom = ref({ row: null, col: null })
+  const lastMove = ref(null)
 
   const switchTurn = () => {
     currentPlayer.value = currentPlayer.value === 'w' ? 'b' : 'w'
@@ -20,7 +21,7 @@ export const useChessBoardStore = defineStore('chess', () => {
   const onDrag = (piece, row, col) => {
     draggedPiece.value = piece
     draggedFrom.value = { row, col }
-    validMoves.value = getValidMoves(piece, row, col, board.value)
+    validMoves.value = getValidMoves(piece, row, col, board.value, lastMove.value)
   }
 
   const onDrop = (rowIndex, colIndex) => {
@@ -32,6 +33,7 @@ export const useChessBoardStore = defineStore('chess', () => {
         rowIndex,
         colIndex,
         board.value,
+        lastMove.value,
       )
 
       if (
@@ -39,6 +41,22 @@ export const useChessBoardStore = defineStore('chess', () => {
         ((currentPlayer.value === 'w' && draggedPiece.value === draggedPiece.value.toUpperCase()) ||
           (currentPlayer.value === 'b' && draggedPiece.value === draggedPiece.value.toLowerCase()))
       ) {
+        lastMove.value = {
+          piece: draggedPiece.value,
+          fromRow: draggedFrom.value.row,
+          fromCol: draggedFrom.value.col,
+          toRow: rowIndex,
+          toCol: colIndex,
+        }
+        // Handle en passant
+        if (
+          Math.abs(colIndex - draggedFrom.value.col) === 1 &&
+          Math.abs(rowIndex - draggedFrom.value.row) === 1
+        ) {
+          const capturedRow = draggedPiece.value === 'P' ? rowIndex + 1 : rowIndex - 1
+          const capturedCol = colIndex
+          board.value[capturedRow][capturedCol] = null // Remove captured pawn
+        }
         board.value[rowIndex][colIndex] = draggedPiece.value
         board.value[draggedFrom.value.row][draggedFrom.value.col] = null
 
