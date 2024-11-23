@@ -1,67 +1,49 @@
-// validatePawnMove.js
-let enPassantInfo = null
-
-export const setEnPassantInfo = (info) => {
-  enPassantInfo = info
-}
-
-export const getEnPassantInfo = () => {
-  return enPassantInfo
-}
-
-const isSameColor = (fromPiece, toPiece) => {
-  return toPiece && (fromPiece.toLowerCase() === toPiece.toLowerCase()) === (fromPiece === toPiece)
-}
-
-const canMoveForwardOne = (fromRow, fromCol, toRow, toCol, direction, board) => {
-  return toCol === fromCol && toRow === fromRow + direction && !board[toRow][toCol]
-}
-
-const canMoveForwardTwo = (fromRow, fromCol, toRow, toCol, direction, startRow, board) => {
-  return (
-    fromRow === startRow &&
-    toCol === fromCol &&
-    toRow === fromRow + 2 * direction &&
-    !board[toRow][toCol] &&
-    !board[fromRow + direction][fromCol]
-  )
-}
-
-const isCaptureMove = (fromRow, fromCol, toRow, toCol, piece, board) => {
-  return (
-    Math.abs(toCol - fromCol) === 1 &&
-    toRow === fromRow + (piece[0] === 'w' ? -1 : 1) &&
-    board[toRow][toCol] &&
-    board[toRow][toCol][0] !== piece[0]
-  )
-}
-
-export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, board) => {
-  const direction = piece[0] === 'w' ? -1 : 1 // White moves up, Black moves down
-  const startRow = piece[0] === 'w' ? 6 : 1
-
-  const fromPiece = board[fromRow][fromCol]
-  const toPiece = board[toRow][toCol]
-
-  // Check for capturing (can't capture own pieces)
-  if (isSameColor(fromPiece, toPiece)) return false
-
-  // Moving forward one square
-  if (canMoveForwardOne(fromRow, fromCol, toRow, toCol, direction, board)) {
-    setEnPassantInfo(null)
-    return true
+export const validatePawnMove = (piece, fromRow, fromCol, toRow, toCol, targetCell, board) => {
+  // White pawn move
+  if (piece === 'P') {
+    if (fromRow - toRow === 1 && fromCol === toCol && targetCell === null) {
+      return true // Move forward one square
+    }
+    if (
+      fromRow === 6 && // Initial position for white pawn
+      fromRow - toRow === 2 &&
+      fromCol === toCol &&
+      targetCell === null &&
+      board[5][fromCol] === null // Ensuring the square in between is empty
+    ) {
+      return true // Move forward two squares
+    }
+    if (
+      fromRow - toRow === 1 &&
+      Math.abs(fromCol - toCol) === 1 &&
+      targetCell &&
+      targetCell.toLowerCase() !== piece
+    ) {
+      return true // Capture
+    }
   }
-
-  // Moving forward two squares from the starting position
-  if (canMoveForwardTwo(fromRow, fromCol, toRow, toCol, direction, startRow, board)) {
-    setEnPassantInfo({ row: toRow, col: toCol, piece })
-    return true
-  }
-
-  // Capturing a piece
-  if (isCaptureMove(fromRow, fromCol, toRow, toCol, piece, board)) {
-    setEnPassantInfo(null)
-    return true
+  // Black pawn move
+  if (piece === 'p') {
+    if (toRow - fromRow === 1 && fromCol === toCol && targetCell === null) {
+      return true // Move forward one square
+    }
+    if (
+      fromRow === 1 && // Initial position for black pawn
+      toRow - fromRow === 2 &&
+      fromCol === toCol &&
+      targetCell === null &&
+      board[2][fromCol] === null // Ensuring the square in between is empty
+    ) {
+      return true // Move forward two squares
+    }
+    if (
+      toRow - fromRow === 1 &&
+      Math.abs(fromCol - toCol) === 1 &&
+      targetCell &&
+      targetCell.toUpperCase() !== piece
+    ) {
+      return true // Capture
+    }
   }
 
   return false

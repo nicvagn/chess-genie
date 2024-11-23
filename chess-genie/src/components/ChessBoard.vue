@@ -13,10 +13,6 @@
           @dragover.prevent
           @drop="onDrop(rowIndex, colIndex)"
         >
-          <div
-            v-if="validMoves.some((move) => move.row === rowIndex && move.col === colIndex)"
-            class="valid-move-indicator"
-          ></div>
           <img
             v-if="cell"
             :src="`../public/img/${chessPieceMap[cell]}.svg`"
@@ -31,11 +27,16 @@
 </template>
 
 <script>
+import { isValidMove } from '@/moveValidation/moveValidation'
 import { ref } from 'vue'
-import { isValidMove } from '../moveValidation/moveValidation'
 
 const parseFEN = (fen) => {
-  const rows = fen.split(' ')[0].split('/')
+  const fenParts = fen.split(' ')
+
+  const rows = fenParts[0].split('/')
+  if (rows.length !== 8) {
+    throw new Error('Invalid FEN string: Must have exactly 8 rows.')
+  }
   const board = Array(8)
     .fill(null)
     .map(() => Array(8).fill(null))
@@ -55,13 +56,22 @@ const parseFEN = (fen) => {
     }
   })
 
-  return board
+  const activeColor = fenParts[1]
+  if (activeColor !== 'w' && activeColor !== 'b') {
+    throw new Error('Invalid FEN string: Active color must be "w" or "b".')
+  }
+
+  return {
+    board,
+    activeColor,
+  }
 }
 
 export default {
   setup() {
-    const fenString = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR'
-    const board = ref(parseFEN(fenString))
+    const fenString = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+    const activeColor = parseFEN(fenString).activeColor
+    const board = ref(parseFEN(fenString).board)
     const chessPieceMap = {
       K: 'wK',
       Q: 'wQ',
@@ -77,57 +87,55 @@ export default {
       p: 'bP',
     }
 
-    let draggedPiece = ref(null)
-    let draggedFrom = ref(null)
-    const validMoves = ref([])
+    const currentPlayer = ref(activeColor)
+    const draggedPiece = ref(null)
+    const draggedFrom = ref({ row: null, col: null })
 
-    const onDrag = (item, rowIndex, colIndex) => {
-      draggedPiece.value = chessPieceMap[item]
-      draggedFrom.value = rowIndex * 8 + colIndex // Calculate the index 0-63
-      // Clear previous valid moves
-      validMoves.value = []
+    const switchTurn = () => {
+      currentPlayer.value = currentPlayer.value === 'w' ? 'b' : 'w'
+    }
 
-      // Calculate and highlight valid moves
-      for (let r = 0; r < 8; r++) {
-        for (let c = 0; c < 8; c++) {
-          if (isValidMove(draggedPiece.value, rowIndex, colIndex, r, c, board.value)) {
-            validMoves.value.push({ row: r, col: c })
-          }
-        }
-      }
+    const onDrag = (piece, row, col) => {
+      draggedPiece.value = piece
+      draggedFrom.value = { row, col }
     }
 
     const onDrop = (rowIndex, colIndex) => {
       if (draggedPiece.value) {
-        const fromRow = Math.floor(draggedFrom.value / 8)
-        const fromCol = draggedFrom.value % 8
-        const piece =
-          draggedPiece.value[0] === 'w'
-            ? draggedPiece.value[1].toUpperCase()
-            : draggedPiece.value[1].toLowerCase()
+        const validMove = isValidMove(
+          draggedPiece.value,
+          draggedFrom.value.row,
+          draggedFrom.value.col,
+          rowIndex,
+          colIndex,
+          board.value,
+        )
 
-        if (isValidMove(draggedPiece.value, fromRow, fromCol, rowIndex, colIndex, board.value)) {
-          board.value[rowIndex][colIndex] = piece // Move to new position
-          board.value[fromRow][fromCol] = null // Clear old position
-
+        if (
+          validMove &&
+          ((currentPlayer.value === 'w' &&
+            draggedPiece.value === draggedPiece.value.toUpperCase()) ||
+            (currentPlayer.value === 'b' &&
+              draggedPiece.value === draggedPiece.value.toLowerCase()))
+        ) {
+          // Move the piece to the new square
+          board.value[rowIndex][colIndex] = draggedPiece.value
+          // Remove the piece from the original square
+          board.value[draggedFrom.value.row][draggedFrom.value.col] = null
           // Clear the dragged piece
           draggedPiece.value = null
-          draggedFrom.value = null
-        } else {
-          console.warn('Invalid move for', draggedPiece.value)
+          // Switch player turn
+          switchTurn()
         }
       }
-
-      // Clear valid moves on drop
-      validMoves.value = []
     }
 
     return {
       board,
       onDrag,
       onDrop,
-      validMoves,
       chessPieceMap,
+      currentPlayer,
     }
   },
 }
@@ -158,15 +166,6 @@ export default {
 
 .dark {
   background-color: rgb(181, 136, 99);
-}
-
-.valid-move-indicator {
-  position: absolute;
-  width: 25px;
-  height: 25px;
-  border-radius: 50%;
-  background-color: rgba(54, 54, 54, 0.365);
-  z-index: 1;
 }
 
 .piece {

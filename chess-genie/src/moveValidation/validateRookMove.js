@@ -1,31 +1,22 @@
-import { setEnPassantInfo } from './validatePawnMove'
+const isPathClear = (fromRow, fromCol, toRow, toCol, board) => {
+  const rowStep = Math.sign(toRow - fromRow)
+  const colStep = Math.sign(toCol - fromCol)
 
-// validateRookMove.js
-export const validateRookMove = (fromRow, fromCol, toRow, toCol, board) => {
-  // Must move straight (same row or same column)
-  if (fromRow !== toRow && fromCol !== toCol) return false
+  let row = fromRow + rowStep
+  let col = fromCol + colStep
 
-  // Check if the path is clear
-  const rowStep = toRow > fromRow ? 1 : toRow < fromRow ? -1 : 0
-  const colStep = toCol > fromCol ? 1 : toCol < fromCol ? -1 : 0
-
-  let currentRow = fromRow + rowStep
-  let currentCol = fromCol + colStep
-
-  while (currentRow !== toRow || currentCol !== toCol) {
-    if (board[currentRow][currentCol]) return false // Path is blocked
-    currentRow += rowStep
-    currentCol += colStep
+  while (row !== toRow || col !== toCol) {
+    if (board[row][col] !== null) {
+      return false // Path is blocked
+    }
+    row += rowStep
+    col += colStep
   }
+  return true // Path is clear
+}
 
-  // Check for capturing (can't capture own pieces)
-  const fromPiece = board[fromRow][fromCol]
-  const toPiece = board[toRow][toCol]
-
-  const isSameColor =
-    toPiece && (fromPiece.toLowerCase() === toPiece.toLowerCase()) === (fromPiece === toPiece)
-
-  if (isSameColor) return false
-  setEnPassantInfo(null)
-  return true
+export const validateRookMove = (fromRow, fromCol, toRow, toCol, board) => {
+  if (fromRow === toRow || fromCol === toCol) {
+    return isPathClear(fromRow, fromCol, toRow, toCol, board)
+  }
 }

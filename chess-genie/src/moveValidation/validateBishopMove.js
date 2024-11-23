@@ -1,31 +1,22 @@
-import { setEnPassantInfo } from './validatePawnMove'
+const isPathClear = (fromRow, fromCol, toRow, toCol, board) => {
+  const rowStep = Math.sign(toRow - fromRow)
+  const colStep = Math.sign(toCol - fromCol)
+
+  let row = fromRow + rowStep
+  let col = fromCol + colStep
+
+  while (row !== toRow || col !== toCol) {
+    if (board[row][col] !== null) {
+      return false // Path is blocked
+    }
+    row += rowStep
+    col += colStep
+  }
+  return true // Path is clear
+}
 
 export const validateBishopMove = (fromRow, fromCol, toRow, toCol, board) => {
-  // Must move diagonally
-  if (Math.abs(fromRow - toRow) !== Math.abs(fromCol - toCol)) return false
-
-  // Check if the path is clear
-  const rowStep = toRow > fromRow ? 1 : -1
-  const colStep = toCol > fromCol ? 1 : -1
-
-  let currentRow = fromRow + rowStep
-  let currentCol = fromCol + colStep
-
-  while (currentRow !== toRow && currentCol !== toCol) {
-    if (board[currentRow][currentCol]) return false // Path is blocked
-    currentRow += rowStep
-    currentCol += colStep
+  if (Math.abs(toRow - fromRow) === Math.abs(toCol - fromCol)) {
+    return isPathClear(fromRow, fromCol, toRow, toCol, board)
   }
-
-  // Check for capturing (can't capture own pieces)
-  const fromPiece = board[fromRow][fromCol]
-  const toPiece = board[toRow][toCol]
-
-  const isSameColor =
-    toPiece && (fromPiece.toLowerCase() === toPiece.toLowerCase()) === (fromPiece === toPiece)
-
-  if (isSameColor) return false
-
-  setEnPassantInfo(null)
-  return true
 }
