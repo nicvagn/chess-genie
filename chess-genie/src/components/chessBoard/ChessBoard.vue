@@ -10,6 +10,9 @@
           :class="{
             light: (rowIndex + colIndex) % 2 === 0,
             dark: (rowIndex + colIndex) % 2 !== 0,
+            check:
+              chessBoardStore.isKingInCheck(chessBoardStore.currentPlayer)?.row === rowIndex &&
+              chessBoardStore.isKingInCheck(chessBoardStore.currentPlayer)?.col === colIndex,
           }"
           @dragover.prevent
           @drop="chessBoardStore.onDrop(rowIndex, colIndex)"
@@ -109,5 +112,20 @@ export default {
   border-radius: 50%;
   background-color: rgba(54, 54, 54, 0.365);
   z-index: 1;
+}
+
+.check {
+  background-color: #413f3fa5;
+  background-image: linear-gradient(135deg, #fd5353 25%, transparent 25%),
+    linear-gradient(225deg, #fd5353 25%, transparent 25%),
+    linear-gradient(45deg, #fd5353 25%, transparent 25%),
+    linear-gradient(315deg, #fd5353 25%, #a02020be 25%);
+  background-position:
+    20px 0,
+    20px 0,
+    0 0,
+    0 0;
+  background-size: 20px 20px;
+  background-repeat: repeat;
 }
 </style>

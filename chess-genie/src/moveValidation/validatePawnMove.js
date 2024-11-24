@@ -32,8 +32,6 @@ export const validatePawnMove = (
 
   // En passant
   if (toRow === fromRow + direction && Math.abs(toCol - fromCol) === 1 && targetCell === null) {
-    const targetRow = piece === 'P' ? fromRow : fromRow // It remains the same for both color pawns
-
     // Ensure lastMove is defined
     if (lastMove) {
       const lastMovePiece = lastMove.piece // Last move piece
@@ -43,7 +41,7 @@ export const validatePawnMove = (
       if (
         lastMovePiece.toLowerCase() === 'p' &&
         lastMoveFromCol === toCol &&
-        lastMove.toRow === targetRow
+        lastMove.toRow === fromRow
       ) {
         return true // En passant capture is valid
       }

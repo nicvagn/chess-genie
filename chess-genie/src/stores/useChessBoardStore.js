@@ -18,6 +18,49 @@ export const useChessBoardStore = defineStore('chess', () => {
     currentPlayer.value = currentPlayer.value === 'w' ? 'b' : 'w'
   }
 
+  // Function to find the position of the king
+  const findKingPosition = (color) => {
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board.value[row][col]
+        if (piece === (color === 'w' ? 'K' : 'k')) {
+          return { row, col }
+        }
+      }
+    }
+    return null
+  }
+
+  // Function to check if the king is in check
+  const isKingInCheck = (color) => {
+    const kingPosition = findKingPosition(color)
+    if (!kingPosition) return null // Return null if no king found
+
+    // Check if any opponent's piece can attack the king
+    const opponentColor = color === 'w' ? 'b' : 'w'
+    for (let row = 0; row < 8; row++) {
+      for (let col = 0; col < 8; col++) {
+        const piece = board.value[row][col]
+        if (
+          piece &&
+          (piece.toLowerCase() !== piece ||
+            (opponentColor === 'w' && piece === piece.toLowerCase()) ||
+            (opponentColor === 'b' && piece === piece.toUpperCase()))
+        ) {
+          const validMovesForOpponent = getValidMoves(piece, row, col, board.value, lastMove.value)
+          if (
+            validMovesForOpponent.some(
+              (move) => move.row === kingPosition.row && move.col === kingPosition.col,
+            )
+          ) {
+            return kingPosition // Return king's position if it is in check
+          }
+        }
+      }
+    }
+    return null // Return null if the king is not in check
+  }
+
   const onDrag = (piece, row, col) => {
     draggedPiece.value = piece
     draggedFrom.value = { row, col }
@@ -62,6 +105,11 @@ export const useChessBoardStore = defineStore('chess', () => {
 
         draggedPiece.value = null
         switchTurn()
+
+        // // Check if the move puts the king in check
+        // if (isKingInCheck(currentPlayer.value)) {
+        //   alert(`${currentPlayer.value === 'w' ? 'White' : 'Black'}'s king is in check!`)
+        // }
       }
     }
 
@@ -76,5 +124,6 @@ export const useChessBoardStore = defineStore('chess', () => {
     validMoves,
     draggedPiece,
     draggedFrom,
+    isKingInCheck,
   }
 })
