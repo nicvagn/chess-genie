@@ -9,7 +9,7 @@ export const useChessBoardStore = defineStore('chess', () => {
   // Computed properties (getters)
   const boardFEN = computed(() => game.value.fen()) // Return FEN for the current game state
   const gameOver = computed(() => game.value.isGameOver()) // Check if the game is over
-
+  const moveHistory = computed(() => game.value.history({ verbose: true })) // Get the history of moves
   // Actions
 
   // Make a move based on the move object
@@ -21,8 +21,8 @@ export const useChessBoardStore = defineStore('chess', () => {
     }
   }
 
-  const getLegalMoves = () => {
-    return game.value.moves()
+  const getLegalMoves = (square) => {
+    return game.value.moves({ square })
   }
 
   // Undo the last move
@@ -44,5 +44,6 @@ export const useChessBoardStore = defineStore('chess', () => {
     undoMove,
     resetGame,
     getLegalMoves,
+    moveHistory,
   }
 })

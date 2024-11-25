@@ -26,6 +26,15 @@
         </div>
       </div>
     </div>
+    <!-- Move History Section -->
+    <div class="move-history">
+      <h3>Move History</h3>
+      <ul>
+        <li v-for="(move, index) in chessStore.moveHistory" :key="index">
+          {{ move.san }}
+        </li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -101,8 +110,8 @@ const handleDrop = (toRow, toCol) => {
 
   // Validate and make the move if there's a piece in the selected square
   if (board.value[fromRow][fromCol].piece) {
-    const from = `${String.fromCharCode(97 + fromCol)}${8 - fromRow}`
-    const to = `${String.fromCharCode(97 + toCol)}${8 - toRow}`
+    const from = getSquareName(fromRow, fromCol)
+    const to = getSquareName(toRow, toCol)
     const move = { from, to }
 
     try {
@@ -112,6 +121,11 @@ const handleDrop = (toRow, toCol) => {
       selectedSquare.value = null // Clear the selected square if it's illegal move
     }
   }
+}
+
+// Utility to convert row/column index to chess notation
+const getSquareName = (row, col) => {
+  return `${String.fromCharCode(97 + col)}${8 - row}`
 }
 
 // Initialize the board when the component is mounted or when the FEN changes
@@ -163,5 +177,29 @@ initializeBoard()
 
 .selected {
   background-color: rgb(255, 191, 53); /* Highlight the selected square */
+}
+
+.move-history {
+  margin-top: 20px;
+  padding: 10px;
+  border: 1px solid #ccc;
+  width: 300px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.move-history h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.move-history ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.move-history li {
+  padding: 5px 0;
+  font-size: 16px;
 }
 </style>
