@@ -6,8 +6,39 @@
           v-for="(cell, colIndex) in row"
           :key="colIndex"
           class="chess-cell"
-          @click="handleCellClick(rowIndex, colIndex)"
+          @click="handleCellClick(rowIndex, colIndex, $event)"
         >
+          <!-- Highlighted Square -->
+          <svg v-if="highlights[rowIndex][colIndex]" class="highlight-square">
+            <!-- Define the drop shadow filter -->
+            <defs>
+              <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                <feOffset dx="0" dy="0" result="offsetblur" />
+                <feFlood flood-color="rgba(0, 0, 0, 0.2)" />
+                <feComposite in2="offsetblur" operator="in" />
+                <feMerge>
+                  <feMergeNode />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <!-- Rectangle with drop shadow applied -->
+            <rect
+              width="90%"
+              height="90%"
+              x="3"
+              y="3"
+              rx="10"
+              ry="10"
+              fill="none"
+              :stroke="highlights[rowIndex][colIndex].color"
+              stroke-width="2.5"
+              filter="url(#drop-shadow)"
+            />
+          </svg>
+
           <img
             v-if="cell"
             :src="`../../public/pieces/${selectedChessPieceSet}/${cell}.svg`"
@@ -42,13 +73,18 @@ const boardState = ref(
     .fill(null)
     .map(() => Array(8).fill(null)),
 )
+const highlights = ref(
+  Array(8)
+    .fill(null)
+    .map(() => Array(8).fill(null)),
+)
 const isFlipped = ref(false)
 const selectedCell = ref(null)
 
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
 
-// On component mounted, check local storage
+// On component mounted, check local storage for piece set
 onMounted(() => {
   const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
   if (storedPieceSet) {
@@ -81,6 +117,10 @@ const setPositionFromFEN = (fen) => {
     .fill(null)
     .map(() => Array(8).fill(null))
 
+  highlights.value = Array(8)
+    .fill(null)
+    .map(() => Array(8).fill(null))
+
   const [position] = fen.split(' ')
 
   let row = 0
@@ -98,20 +138,63 @@ const setPositionFromFEN = (fen) => {
   }
 }
 
-const handleCellClick = (rowIndex, colIndex) => {
-  if (selectedCell.value) {
-    const targetCell = boardState.value[rowIndex][colIndex]
-    const selectedPiece = boardState.value[selectedCell.value.row][selectedCell.value.col]
+const handleCellClick = (rowIndex, colIndex, event) => {
+  const existingHighlight = highlights.value[rowIndex][colIndex]
 
-    if (targetCell === null || targetCell[0] !== selectedPiece[0]) {
-      boardState.value[rowIndex][colIndex] = selectedPiece
-      boardState.value[selectedCell.value.row][selectedCell.value.col] = null
+  // Define colors based on the modifier keys
+  const colors = {
+    ctrl: 'blue',
+    shift: 'red',
+    alt: 'green',
+  }
+
+  if (event.ctrlKey) {
+    if (existingHighlight) {
+      // Check if the existing color matches
+      if (existingHighlight.color === colors.ctrl) {
+        highlights.value[rowIndex][colIndex] = null // Remove highlight if it matches
+      } else {
+        highlights.value[rowIndex][colIndex] = { color: colors.ctrl } // Set new color if it doesn't match
+      }
+    } else {
+      highlights.value[rowIndex][colIndex] = { color: colors.ctrl } // Add new highlight
     }
-
-    selectedCell.value = null
+  } else if (event.shiftKey) {
+    if (existingHighlight) {
+      if (existingHighlight.color === colors.shift) {
+        highlights.value[rowIndex][colIndex] = null
+      } else {
+        highlights.value[rowIndex][colIndex] = { color: colors.shift }
+      }
+    } else {
+      highlights.value[rowIndex][colIndex] = { color: colors.shift }
+    }
+  } else if (event.altKey) {
+    if (existingHighlight) {
+      if (existingHighlight.color === colors.alt) {
+        highlights.value[rowIndex][colIndex] = null
+      } else {
+        highlights.value[rowIndex][colIndex] = { color: colors.alt }
+      }
+    } else {
+      highlights.value[rowIndex][colIndex] = { color: colors.alt }
+    }
   } else {
-    if (boardState.value[rowIndex][colIndex]) {
-      selectedCell.value = { row: rowIndex, col: colIndex }
+    // Handle the normal piece moving logic
+    if (selectedCell.value) {
+      const targetCell = boardState.value[rowIndex][colIndex]
+      const selectedPiece = boardState.value[selectedCell.value.row][selectedCell.value.col]
+
+      if (targetCell === null || targetCell[0] !== selectedPiece[0]) {
+        boardState.value[rowIndex][colIndex] = selectedPiece
+        boardState.value[selectedCell.value.row][selectedCell.value.col] = null
+      }
+
+      selectedCell.value = null
+    } else {
+      if (boardState.value[rowIndex][colIndex]) {
+        selectedCell.value = { row: rowIndex, col: colIndex }
+      }
     }
   }
 }
@@ -120,6 +203,11 @@ const flipBoard = () => {
   isFlipped.value = !isFlipped.value
 
   boardState.value = boardState.value
+    .slice()
+    .reverse()
+    .map((row) => row.reverse())
+
+  highlights.value = highlights.value
     .slice()
     .reverse()
     .map((row) => row.reverse())
@@ -170,6 +258,13 @@ setPositionFromFEN('r1bqkbnr/pp2pppp/2n5/1B1pP3/3N4/8/PPP2PPP/RNBQK2R b KQkq - 2
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.highlight-square {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
 }
 
 .selected {
