@@ -1,205 +1,178 @@
 <template>
-  <div class="chessboard-container">
-    <div class="board">
-      <div class="board-row" v-for="(row, rowIndex) in board" :key="rowIndex">
+  <div class="chessboard" ref="board">
+    <div class="chessboard-hidden" ref="hiddenBoard">
+      <div v-for="(row, rowIndex) in boardState" :key="rowIndex" class="chess-row">
         <div
-          v-for="(square, colIndex) in row"
+          v-for="(cell, colIndex) in row"
           :key="colIndex"
-          class="board-square"
-          :class="{
-            white: (rowIndex + colIndex) % 2 === 0,
-            black: (rowIndex + colIndex) % 2 !== 0,
-            selected:
-              selectedSquare && selectedSquare.row === rowIndex && selectedSquare.col === colIndex,
-          }"
-          @dragover.prevent
-          @drop="handleDrop(rowIndex, colIndex)"
-          :draggable="square.piece !== null"
-          @drag="handleDrag(rowIndex, colIndex)"
+          class="chess-cell"
+          @click="handleCellClick(rowIndex, colIndex)"
         >
           <img
-            v-if="square.piece"
-            :src="getPieceImage(square.piece)"
-            alt="chess piece"
-            class="piece"
+            v-if="cell"
+            :src="`../../public/pieces/${selectedChessPieceSet}/${cell}.svg`"
+            :alt="cell"
+            class="chess-piece"
+            :class="{
+              selected:
+                selectedCell && selectedCell.row === rowIndex && selectedCell.col === colIndex,
+            }"
           />
         </div>
       </div>
     </div>
-    <!-- Move History Section -->
-    <div class="move-history">
-      <h3>Move History</h3>
-      <ul>
-        <li v-for="(move, index) in chessStore.moveHistory" :key="index">
-          {{ move.san }}
-        </li>
-      </ul>
-    </div>
+  </div>
+  <div>
+    <button @click="flipBoard">Flip Board</button>
+    <select v-model="selectedChessPieceSet">
+      <option v-for="[key, value] in Object.entries(chessPieceSet)" :key="key" :value="value">
+        {{ value }}
+      </option>
+    </select>
   </div>
 </template>
 
 <script setup>
-import { useChessBoardStore } from '@/stores/useChessBoardStore'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 
-// Store initialization
-const chessStore = useChessBoardStore()
+const board = ref(null)
+const hiddenBoard = ref(null)
+const boardState = ref(
+  Array(8)
+    .fill(null)
+    .map(() => Array(8).fill(null)),
+)
+const isFlipped = ref(false)
+const selectedCell = ref(null)
 
-// Reactive board state (8x8 grid of squares)
-const board = ref([])
+const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
+const selectedChessPieceSet = ref('Cardinal')
 
-// Track the selected square's row and column for the starting position
-const selectedSquare = ref(null)
+// On component mounted, check local storage
+onMounted(() => {
+  const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
+  if (storedPieceSet) {
+    selectedChessPieceSet.value = storedPieceSet
+  }
+})
 
-// Initialize the board based on the current FEN
-const initializeBoard = () => {
-  const fen = chessStore.boardFEN
-  const pieces = fen.split(' ')[0].split('/') // Only consider the FEN for the board
-  const boardArray = []
+// Watch for changes to selectedChessPieceSet and save to local storage
+watch(selectedChessPieceSet, (newPieceSet) => {
+  localStorage.setItem('selectedChessPieceSet', newPieceSet)
+})
 
-  pieces.forEach((row, rowIndex) => {
-    const boardRow = []
-    let colIndex = 0
+const setPositionFromFEN = (fen) => {
+  const pieceMap = {
+    p: 'bP', // black pawn
+    r: 'bR', // black rook
+    n: 'bN', // black knight
+    b: 'bB', // black bishop
+    q: 'bQ', // black queen
+    k: 'bK', // black king
+    P: 'wP', // white pawn
+    R: 'wR', // white rook
+    N: 'wN', // white knight
+    B: 'wB', // white bishop
+    Q: 'wQ', // white queen
+    K: 'wK', // white king
+  }
 
-    // Parse each row
-    for (let char of row) {
-      if (parseInt(char)) {
-        // If a number, represent empty squares
-        for (let i = 0; i < parseInt(char); i++) {
-          const color = (rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'
-          boardRow.push({ color, piece: null })
-          colIndex++
-        }
-      } else {
-        // If it's a piece, parse the piece type and color
-        const piece = {
-          type: char.toLowerCase(),
-          color: char === char.toUpperCase() ? 'white' : 'black',
-        }
-        const color = (rowIndex + colIndex) % 2 === 0 ? 'white' : 'black'
-        boardRow.push({ color, piece })
-        colIndex++
-      }
+  boardState.value = Array(8)
+    .fill(null)
+    .map(() => Array(8).fill(null))
+
+  const [position] = fen.split(' ')
+
+  let row = 0
+  let col = 0
+  for (let char of position) {
+    if (parseInt(char)) {
+      col += parseInt(char)
+    } else if (char === '/') {
+      row += 1
+      col = 0
+    } else {
+      boardState.value[row][col] = pieceMap[char]
+      col += 1
     }
-    boardArray.push(boardRow)
-  })
-
-  board.value = boardArray
+  }
 }
 
-// Get the image source for a piece
-const getPieceImage = (piece) => {
-  return `../../../public/img/${piece.color[0]}${piece.type}.svg`
-}
+const handleCellClick = (rowIndex, colIndex) => {
+  if (selectedCell.value) {
+    const targetCell = boardState.value[rowIndex][colIndex]
+    const selectedPiece = boardState.value[selectedCell.value.row][selectedCell.value.col]
 
-// Handle dragging a piece
-const handleDrag = (rowIndex, colIndex) => {
-  if (board.value[rowIndex][colIndex].piece) {
-    selectedSquare.value = { row: rowIndex, col: colIndex }
+    if (targetCell === null || targetCell[0] !== selectedPiece[0]) {
+      boardState.value[rowIndex][colIndex] = selectedPiece
+      boardState.value[selectedCell.value.row][selectedCell.value.col] = null
+    }
+
+    selectedCell.value = null
   } else {
-    selectedSquare.value = null
-  }
-}
-
-// Handle dropping a piece
-const handleDrop = (toRow, toCol) => {
-  if (!selectedSquare.value) return // No piece selected
-
-  const fromRow = selectedSquare.value.row
-  const fromCol = selectedSquare.value.col
-
-  // Validate and make the move if there's a piece in the selected square
-  if (board.value[fromRow][fromCol].piece) {
-    const from = getSquareName(fromRow, fromCol)
-    const to = getSquareName(toRow, toCol)
-    const move = { from, to }
-
-    try {
-      chessStore.makeMove(move)
-      selectedSquare.value = null // Clear the selected square after the move
-    } catch {
-      selectedSquare.value = null // Clear the selected square if it's illegal move
+    if (boardState.value[rowIndex][colIndex]) {
+      selectedCell.value = { row: rowIndex, col: colIndex }
     }
   }
 }
 
-// Utility to convert row/column index to chess notation
-const getSquareName = (row, col) => {
-  return `${String.fromCharCode(97 + col)}${8 - row}`
+const flipBoard = () => {
+  isFlipped.value = !isFlipped.value
+
+  boardState.value = boardState.value
+    .slice()
+    .reverse()
+    .map((row) => row.reverse())
 }
 
-// Initialize the board when the component is mounted or when the FEN changes
-watch(() => chessStore.boardFEN, initializeBoard)
-initializeBoard()
+// Example usage
+setPositionFromFEN('r1bqkbnr/pp2pppp/2n5/1B1pP3/3N4/8/PPP2PPP/RNBQK2R b KQkq - 2 6')
 </script>
 
 <style scoped>
-.chessboard-container {
-  display: grid;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 20px;
+.chessboard {
+  width: 500px;
+  height: 500px;
+  background-image: url('../../public/chessboard/wood4.jpg');
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  position: relative;
 }
 
-.board {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid black;
-  width: fit-content;
-  height: fit-content;
-}
-
-.board-row {
-  display: flex;
-}
-
-.board-square {
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: grab;
-}
-
-.white {
-  background-color: #f0d9b5;
-}
-
-.black {
-  background-color: #b58863;
-}
-
-.piece {
+.chessboard-hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: auto;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+}
+
+.chess-row {
+  display: contents;
+}
+
+.chess-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.chess-piece {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .selected {
-  background-color: rgb(255, 191, 53); /* Highlight the selected square */
-}
-
-.move-history {
-  margin-top: 20px;
-  padding: 10px;
-  border: 1px solid #ccc;
-  width: 300px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.move-history h3 {
-  font-size: 18px;
-  margin-bottom: 10px;
-}
-
-.move-history ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-.move-history li {
-  padding: 5px 0;
-  font-size: 16px;
+  background-color: rgba(0, 136, 255, 0.461);
 }
 </style>

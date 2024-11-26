@@ -1,5 +1,5 @@
 {
-  "cSpell.words": ["piecetype", "Queenside", "stockfish"],
+  "cSpell.words": ["chessground", "piecetype", "Queenside", "stockfish"],
   "explorer.fileNesting.enabled": true,
   "explorer.fileNesting.patterns": {
     "tsconfig.json": "tsconfig.*.json, env.d.ts",
