@@ -117,8 +117,10 @@
 </template>
 
 <script setup>
+import { Chess } from 'chess.js'
 import { onMounted, ref, watch } from 'vue'
 
+const chess = ref(new Chess())
 const board = ref(null)
 const hiddenBoard = ref(null)
 const boardState = ref(
@@ -229,42 +231,20 @@ watch(selectedChessPieceSet, (newPieceSet) => {
 })
 
 const setPositionFromFEN = (fen) => {
-  const pieceMap = {
-    p: 'bP', // black pawn
-    r: 'bR', // black rook
-    n: 'bN', // black knight
-    b: 'bB', // black bishop
-    q: 'bQ', // black queen
-    k: 'bK', // black king
-    P: 'wP', // white pawn
-    R: 'wR', // white rook
-    N: 'wN', // white knight
-    B: 'wB', // white bishop
-    Q: 'wQ', // white queen
-    K: 'wK', // white king
-  }
+  chess.value.load(fen) // Load FEN into chess.js
 
+  // update boardState based on the FEN-loaded position
   boardState.value = Array(8)
     .fill(null)
     .map(() => Array(8).fill(null))
 
-  highlights.value = Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null))
-
-  const [position] = fen.split(' ')
-
-  let row = 0
-  let col = 0
-  for (let char of position) {
-    if (parseInt(char)) {
-      col += parseInt(char)
-    } else if (char === '/') {
-      row += 1
-      col = 0
-    } else {
-      boardState.value[row][col] = pieceMap[char]
-      col += 1
+  // Map chess.js pieces to boardState
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const piece = chess.value.board()[row][col]
+      if (piece) {
+        boardState.value[row][col] = piece.color + piece.type.toUpperCase() // e.g., 'wR', 'bN'
+      }
     }
   }
 }
@@ -315,16 +295,27 @@ const handleCellClick = (rowIndex, colIndex, event) => {
   } else {
     // Handle the normal piece moving logic
     if (selectedCell.value) {
-      const targetCell = boardState.value[rowIndex][colIndex]
-      const selectedPiece = boardState.value[selectedCell.value.row][selectedCell.value.col]
-
-      if (targetCell === null || targetCell[0] !== selectedPiece[0]) {
-        boardState.value[rowIndex][colIndex] = selectedPiece
-        boardState.value[selectedCell.value.row][selectedCell.value.col] = null
+      // Deselect the selected piece if the same square is clicked
+      if (selectedCell.value.row === rowIndex && selectedCell.value.col === colIndex) {
+        selectedCell.value = null
+      } else {
+        const selectedPiece = boardState.value[selectedCell.value.row][selectedCell.value.col]
+        try {
+          // try to move piece
+          chess.value.move({
+            from: getSquareCoordinates(selectedCell.value.row, selectedCell.value.col),
+            to: getSquareCoordinates(rowIndex, colIndex),
+          })
+          boardState.value[rowIndex][colIndex] = selectedPiece
+          boardState.value[selectedCell.value.row][selectedCell.value.col] = null
+          selectedCell.value = null
+          arrows.value = []
+        } catch {
+          // deselect piece if it's invalid move
+          selectedCell.value = null
+          arrows.value = []
+        }
       }
-
-      selectedCell.value = null
-      arrows.value = []
     } else {
       if (boardState.value[rowIndex][colIndex]) {
         selectedCell.value = { row: rowIndex, col: colIndex }
@@ -386,13 +377,14 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq 
   width: 100%;
   height: 100%;
   cursor: pointer;
-  background-color: rgba(255, 255, 255, 0.3); /* Default to a transparent white */
+  /* background-color: rgba(255, 255, 255, 0.3); */
 }
 
-.chess-row:nth-child(odd) .chess-cell:nth-child(even),
+/* black squares */
+/* .chess-row:nth-child(odd) .chess-cell:nth-child(even),
 .chess-row:nth-child(even) .chess-cell:nth-child(odd) {
-  background-color: rgba(0, 0, 0, 0.3); /* Transparent black for alternate squares */
-}
+  background-color: rgba(0, 0, 0, 0.3);
+} */
 
 .chess-piece {
   width: 100%;
@@ -412,6 +404,7 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq 
 .selected {
   background-color: rgba(0, 136, 255, 0.461);
 }
+
 .draw-arrows {
   position: absolute;
   top: 0;
@@ -423,8 +416,8 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq 
 
 .square-coordinates {
   position: absolute;
-  bottom: 5px;
-  right: 5px;
+  top: 0.5px;
+  right: 0.5px;
   font-size: 14px;
   font-weight: bold;
   pointer-events: none;
