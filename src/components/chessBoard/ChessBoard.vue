@@ -14,6 +14,11 @@
           class="chess-cell"
           @click="handleCellClick(rowIndex, colIndex, $event)"
         >
+          <span
+            class="square-coordinates"
+            :style="{ color: (rowIndex + colIndex) % 2 !== 0 ? 'darkgray' : 'black' }"
+            >{{ getSquareCoordinates(rowIndex, colIndex) }}</span
+          >
           <!-- Highlighted Square -->
           <svg v-if="highlights[rowIndex][colIndex]" class="highlight-square">
             <!-- Define the drop shadow filter -->
@@ -202,6 +207,14 @@ const getSquareCenter = (row, col) => ({
   y: (row + 0.5) * (board.value.offsetHeight / 8),
 })
 
+const getSquareCoordinates = (rowIndex, colIndex) => {
+  let displayRowIndex = isFlipped.value ? 7 - rowIndex : rowIndex
+  let displayColIndex = isFlipped.value ? 7 - colIndex : colIndex
+  const file = String.fromCharCode(97 + displayColIndex) // 'a' is char code 97
+  const rank = 8 - displayRowIndex // 8 is the highest rank in chess
+  return `${file}${rank}`
+}
+
 // On component mounted, check local storage for piece set
 onMounted(() => {
   const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
@@ -334,8 +347,8 @@ const flipBoard = () => {
     .map((row) => row.reverse())
 }
 
-// Example usage
-setPositionFromFEN('r1bqkbnr/pp2pppp/2n5/1B1pP3/3N4/8/PPP2PPP/RNBQK2R b KQkq - 2 6')
+// https://lichess.org/rv5nxLJz/white#8
+setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq - 6 5')
 </script>
 
 <style scoped>
@@ -373,12 +386,20 @@ setPositionFromFEN('r1bqkbnr/pp2pppp/2n5/1B1pP3/3N4/8/PPP2PPP/RNBQK2R b KQkq - 2
   width: 100%;
   height: 100%;
   cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.3); /* Default to a transparent white */
+}
+
+.chess-row:nth-child(odd) .chess-cell:nth-child(even),
+.chess-row:nth-child(even) .chess-cell:nth-child(odd) {
+  background-color: rgba(0, 0, 0, 0.3); /* Transparent black for alternate squares */
 }
 
 .chess-piece {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  pointer-events: none;
+  user-select: none;
 }
 
 .highlight-square {
@@ -398,5 +419,15 @@ setPositionFromFEN('r1bqkbnr/pp2pppp/2n5/1B1pP3/3N4/8/PPP2PPP/RNBQK2R b KQkq - 2
   width: 100%;
   height: 100%;
   pointer-events: none;
+}
+
+.square-coordinates {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  font-size: 14px;
+  font-weight: bold;
+  pointer-events: none;
+  user-select: none;
 }
 </style>
