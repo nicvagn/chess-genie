@@ -7,63 +7,62 @@
     @mousemove="handleMouseMove"
   >
     <div class="chessboard-hidden" ref="hiddenBoard">
-      <div v-for="(row, rowIndex) in boardState" :key="rowIndex" class="chess-row">
-        <div
-          v-for="(cell, colIndex) in row"
-          :key="colIndex"
-          class="chess-cell"
-          :class="{ 'king-check': getKingInCheck(rowIndex, colIndex) }"
-          @dragover="handleDragOver"
-          @drop="handleDrop(rowIndex, colIndex)"
-          @click="handleCellClick(rowIndex, colIndex, $event)"
+      <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
+      <div
+        v-for="(square, index) in isFlipped ? flippedChessBoardSquares : chessBoardSquares"
+        :key="square"
+        class="chess-cell"
+        :class="{ 'king-check': getKingInCheck(square) }"
+        @dragover="handleDragOver"
+        @drop="handleDrop(square)"
+        @click="handleCellClick(square, $event)"
+      >
+        <span
+          class="square-coordinates"
+          :style="{ color: index % 2 === 0 ? 'darkgray' : 'black' }"
+          >{{ square }}</span
         >
-          <span
-            class="square-coordinates"
-            :style="{ color: (rowIndex + colIndex) % 2 !== 0 ? 'darkgray' : 'black' }"
-            >{{ getSquareCoordinates(rowIndex, colIndex) }}</span
-          >
 
-          <!-- Highlighted Square -->
-          <svg v-if="highlightedSquares[rowIndex][colIndex]" class="highlight-square">
-            <defs>
-              <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-                <feOffset dx="0" dy="0" result="offsetblur" />
-                <feFlood flood-color="rgba(0, 0, 0, 0.2)" />
-                <feComposite in2="offsetblur" operator="in" />
-                <feMerge>
-                  <feMergeNode />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
-            <rect
-              width="90%"
-              height="90%"
-              x="3"
-              y="3"
-              rx="10"
-              ry="10"
-              fill="none"
-              :stroke="highlightedSquares[rowIndex][colIndex].color"
-              stroke-width="2.5"
-              filter="url(#drop-shadow)"
-            />
-          </svg>
-
-          <img
-            v-if="cell"
-            :src="`../../public/pieces/${selectedChessPieceSet}/${cell}.svg`"
-            :alt="cell"
-            class="chess-piece"
-            :class="{
-              selected:
-                selectedCell && selectedCell.row === rowIndex && selectedCell.col === colIndex,
-            }"
-            @dragstart="handleDragStart(rowIndex, colIndex)"
-            :draggable="cell !== null"
+        <!-- Highlighted Square -->
+        <svg v-if="highlightedSquares[square]" class="highlight-square">
+          <defs>
+            <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+              <feOffset dx="0" dy="0" result="offsetblur" />
+              <feFlood flood-color="rgba(0, 0, 0, 0.2)" />
+              <feComposite in2="offsetblur" operator="in" />
+              <feMerge>
+                <feMergeNode />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <rect
+            width="90%"
+            height="90%"
+            x="3"
+            y="3"
+            rx="10"
+            ry="10"
+            fill="none"
+            :stroke="highlightedSquares[square].color"
+            stroke-width="2.5"
+            filter="url(#drop-shadow)"
           />
-        </div>
+        </svg>
+
+        <!-- Chess piece image -->
+        <img
+          v-if="boardState[square]"
+          :src="`../../public/pieces/${selectedChessPieceSet}/${boardState[square]}.svg`"
+          :alt="boardState[square]"
+          class="chess-piece"
+          :class="{
+            selected: selectedCell === square,
+          }"
+          @dragstart="handleDragStart(square)"
+          :draggable="boardState[square] !== null"
+        />
       </div>
     </div>
   </div>
@@ -78,22 +77,19 @@
 </template>
 
 <script setup>
-import { Chess } from 'chess.js'
-import { onMounted, ref, watch } from 'vue'
+import { Chess, SQUARES } from 'chess.js'
+import { computed, onMounted, ref, watch } from 'vue'
 
 const chess = ref(new Chess())
-const boardState = ref(
-  Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null)),
-)
-const highlightedSquares = ref(
-  Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null)),
-)
+const boardState = ref({}) // Use an object to map square to pieces.
+const highlightedSquares = ref({})
 const isFlipped = ref(false)
 const selectedCell = ref(null)
+
+const chessBoardSquares = SQUARES
+const flippedChessBoardSquares = computed(() => {
+  return [...chessBoardSquares].reverse()
+})
 
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
@@ -105,9 +101,32 @@ const colors = {
   altShift: 'yellow',
 }
 
-const handleDragStart = (rowIndex, colIndex) => {
-  if (boardState.value[rowIndex][colIndex]) {
-    selectedCell.value = { row: rowIndex, col: colIndex }
+// Function to get the opponent piece position
+const getOpponentPiecePosition = (pieceName) => {
+  const currentColor = chess.value.turn()
+
+  // Loop through each square on the board, searching for the opponent's piece
+  for (const square of chessBoardSquares) {
+    const piece = chess.value.get(square)
+    if (piece && piece.color === currentColor && piece.type === pieceName) {
+      return square
+    }
+  }
+  return null
+}
+
+// Helper function to get the king's position when in check
+const getKingInCheck = (square) => {
+  if (chess.value.isCheck()) {
+    const kingPosition = getOpponentPiecePosition('k') // Get the opponent's king position
+    return kingPosition === square
+  }
+  return false
+}
+
+const handleDragStart = (square) => {
+  if (boardState.value[square]) {
+    selectedCell.value = square
   }
 }
 
@@ -115,43 +134,44 @@ const handleDragOver = (event) => {
   event.preventDefault() // Allow the drop
 }
 
-const handleDrop = (rowIndex, colIndex) => {
+const handleDrop = (toSquare) => {
+  const actualToSquare = isFlipped.value
+    ? flippedChessBoardSquares.value.find((sq) => sq === toSquare)
+    : toSquare
   if (selectedCell.value) {
-    const fromSquare = getSquareCoordinates(selectedCell.value.row, selectedCell.value.col)
-    const toSquare = getSquareCoordinates(rowIndex, colIndex)
-
-    const legalMoves = chess.value.moves({ square: fromSquare, verbose: true })
-    const validMove = legalMoves.find((move) => move.to === toSquare)
+    const fromSquare = selectedCell.value
+    const actualFromSquare = isFlipped.value
+      ? flippedChessBoardSquares.value.find((sq) => sq === fromSquare)
+      : fromSquare
+    const legalMoves = chess.value.moves({ square: actualFromSquare, verbose: true })
+    const validMove = legalMoves.find((move) => move.to === actualToSquare)
 
     if (validMove) {
       // Move piece
-      chess.value.move({ from: fromSquare, to: toSquare })
+      chess.value.move({ from: actualFromSquare, to: actualToSquare })
       // Update boardState
-      const piece = boardState.value[selectedCell.value.row][selectedCell.value.col]
-      boardState.value[rowIndex][colIndex] = piece
-      boardState.value[selectedCell.value.row][selectedCell.value.col] = null
+      boardState.value[actualToSquare] = boardState.value[actualFromSquare]
+      boardState.value[actualFromSquare] = null
     }
     // Clear highlights after move
-    highlightedSquares.value = Array(8)
-      .fill(null)
-      .map(() => Array(8).fill(null))
+    highlightedSquares.value = {}
 
     selectedCell.value = null
   }
 }
 
-const handleCellClick = (rowIndex, colIndex, event) => {
-  const existingHighlight = highlightedSquares.value[rowIndex][colIndex]
+const handleCellClick = (square, event) => {
+  const existingHighlight = highlightedSquares.value[square]
 
   const toggleHighlight = (color) => {
     if (existingHighlight) {
       if (existingHighlight.color === color) {
-        highlightedSquares.value[rowIndex][colIndex] = null
+        highlightedSquares.value[square] = null
       } else {
-        highlightedSquares.value[rowIndex][colIndex] = { color }
+        highlightedSquares.value[square] = { color }
       }
     } else {
-      highlightedSquares.value[rowIndex][colIndex] = { color }
+      highlightedSquares.value[square] = { color }
     }
   }
 
@@ -166,39 +186,18 @@ const handleCellClick = (rowIndex, colIndex, event) => {
   }
 }
 
-const getSquareCoordinates = (rowIndex, colIndex) => {
-  let displayRowIndex = isFlipped.value ? 7 - rowIndex : rowIndex
-  let displayColIndex = isFlipped.value ? 7 - colIndex : colIndex
-  const file = String.fromCharCode(97 + displayColIndex) // 'a' is char code 97
-  const rank = 8 - displayRowIndex // 8 is the highest rank in chess
-  return `${file}${rank}`
-}
+const setPositionFromFEN = (fen) => {
+  chess.value.load(fen) // Load FEN into chess.js
 
-const getOpponentPiecePosition = (pieceName) => {
-  const currentColor = chess.value.turn()
-
-  // Loop through each square on the board, searching for the opponent's king
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = chess.value.board()[row][col]
-      if (piece && piece.color === currentColor && piece.type === pieceName) {
-        return getSquareCoordinates(row, col)
-      }
+  // Map chess.js pieces to boardState
+  for (const square of chessBoardSquares) {
+    const piece = chess.value.get(square)
+    if (piece) {
+      boardState.value[square] = piece.color + piece.type.toUpperCase() // e.g., 'wR', 'bN'
+    } else {
+      boardState.value[square] = null
     }
   }
-  return null
-}
-
-// Helper function to get the king's position when in check
-const getKingInCheck = (rowIndex, colIndex) => {
-  if (chess.value.isCheck()) {
-    const kingPosition = getOpponentPiecePosition('k') // Get the opponent's king position
-    const [file, rank] = kingPosition.split('') // e.g., "e5" => ["e", "5"]
-    const kingColIndex = file.charCodeAt(0) - 97 // Convert letter to index (0-7)
-    const kingRowIndex = 8 - parseInt(rank) // Convert rank back to index
-    return kingRowIndex === rowIndex && kingColIndex === colIndex
-  }
-  return false
 }
 
 // On component mounted, check local storage for piece set
@@ -214,37 +213,8 @@ watch(selectedChessPieceSet, (newPieceSet) => {
   localStorage.setItem('selectedChessPieceSet', newPieceSet)
 })
 
-const setPositionFromFEN = (fen) => {
-  chess.value.load(fen) // Load FEN into chess.js
-
-  // update boardState based on the FEN-loaded position
-  boardState.value = Array(8)
-    .fill(null)
-    .map(() => Array(8).fill(null))
-
-  // Map chess.js pieces to boardState
-  for (let row = 0; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      const piece = chess.value.board()[row][col]
-      if (piece) {
-        boardState.value[row][col] = piece.color + piece.type.toUpperCase() // e.g., 'wR', 'bN'
-      }
-    }
-  }
-}
-
 const flipBoard = () => {
   isFlipped.value = !isFlipped.value
-
-  boardState.value = boardState.value
-    .slice()
-    .reverse()
-    .map((row) => row.reverse())
-
-  highlightedSquares.value = highlightedSquares.value
-    .slice()
-    .reverse()
-    .map((row) => row.reverse())
 }
 
 // Example FEN position
@@ -274,10 +244,6 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq 
   grid-template-rows: repeat(8, 1fr);
 }
 
-.chess-row {
-  display: contents;
-}
-
 .chess-cell {
   display: flex;
   justify-content: center;
@@ -286,14 +252,7 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq 
   width: 100%;
   height: 100%;
   cursor: pointer;
-  /* background-color: rgba(255, 255, 255, 0.3); */
 }
-
-/* black squares */
-/* .chess-row:nth-child(odd) .chess-cell:nth-child(even),
-.chess-row:nth-child(even) .chess-cell:nth-child(odd) {
-  background-color: rgba(0, 0, 0, 0.3);
-} */
 
 .chess-piece {
   width: 100%;
