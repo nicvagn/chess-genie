@@ -24,7 +24,10 @@
         >
 
         <!-- Highlighted Square -->
-        <svg v-if="highlightedSquares[square]" class="highlight-square">
+        <svg
+          v-if="highlightedSquares[square] && highlightedSquares[square].type !== 'move'"
+          class="highlight-square"
+        >
           <defs>
             <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
@@ -50,6 +53,12 @@
             filter="url(#drop-shadow)"
           />
         </svg>
+
+        <!-- Highlighted move (small circle) -->
+        <div
+          v-if="highlightedSquares[square] && highlightedSquares[square].type === 'move'"
+          class="highlight-circle"
+        ></div>
 
         <!-- Chess piece image -->
         <img
@@ -127,6 +136,11 @@ const getKingInCheck = (square) => {
 const handleDragStart = (square) => {
   if (boardState.value[square]) {
     selectedCell.value = square
+    const legalMoves = chess.value.moves({ square: square, verbose: true })
+    // Store legal moves in highlightedSquares
+    legalMoves.forEach((move) => {
+      highlightedSquares.value[move.to] = { color: 'green', type: 'move' } // Highlight with green circles
+    })
   }
 }
 
@@ -290,5 +304,16 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq 
 
 .king-check {
   background-color: rgba(255, 0, 0, 0.5);
+}
+
+.highlight-circle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: rgba(0, 128, 0, 0.8);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 </style>
