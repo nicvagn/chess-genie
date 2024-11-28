@@ -148,6 +148,49 @@ const handleDragOver = (event) => {
   event.preventDefault() // Allow the drop
 }
 
+// Function to get locations of given piece by name and color
+const getPieceLocations = (pieceName, pieceColor) => {
+  const positions = []
+
+  // Loop through each square on the board
+  for (const square of chessBoardSquares) {
+    const piece = chess.value.get(square) // Get the piece at the current square
+    // Check if the piece exists and matches the specified color and name
+    if (piece && piece.color === pieceColor && piece.type === pieceName) {
+      positions.push(square) // Add the square to the results
+    }
+  }
+
+  return positions // Return an array of squares that contain the specified piece
+}
+
+// Function to get the king's left and right squares
+const getKingAdjacentSquares = (kingPosition) => {
+  const file = kingPosition.charAt(0) // Extract the file (letter)
+  const rank = parseInt(kingPosition.charAt(1)) // Extract the rank (number)
+
+  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] // List of valid files (columns)
+
+  // Get the index of the king's current file
+  const fileIndex = files.indexOf(file)
+
+  // Calculate the left and right squares
+  let leftSquare = null
+  let rightSquare = null
+
+  // Left square is one file to the left of the current file, if it's not 'a'
+  if (fileIndex > 0) {
+    leftSquare = `${files[fileIndex - 1]}${rank}`
+  }
+
+  // Right square is one file to the right of the current file, if it's not 'h'
+  if (fileIndex < files.length - 1) {
+    rightSquare = `${files[fileIndex + 1]}${rank}`
+  }
+
+  return { left: leftSquare, right: rightSquare }
+}
+
 const handleDrop = (toSquare) => {
   const actualToSquare = isFlipped.value
     ? flippedChessBoardSquares.value.find((sq) => sq === toSquare)
@@ -161,6 +204,39 @@ const handleDrop = (toSquare) => {
     const validMove = legalMoves.find((move) => move.to === actualToSquare)
 
     if (validMove) {
+      const blackRooksPosition = getPieceLocations('r', 'b')
+      const blackKingPosition = getPieceLocations('k', 'b')[0]
+      const whiteRooksPosition = getPieceLocations('r', 'w')
+      const whiteKingPosition = getPieceLocations('k', 'w')[0]
+
+      const whiteKingAdjacent = getKingAdjacentSquares(whiteKingPosition)
+      const blackKingAdjacent = getKingAdjacentSquares(blackKingPosition)
+
+      // Handle en passant - remove the captured pawn
+      if (validMove.flags.includes('e')) {
+        const capturedPawnSquare =
+          actualToSquare.charAt(0) +
+          (parseInt(actualToSquare.charAt(1)) + (chess.value.turn() === 'w' ? -1 : 1))
+        boardState.value[capturedPawnSquare] = null // Remove the captured pawn
+      }
+      // kingside castling
+      if (validMove.flags.includes('k')) {
+        const rookFromSquare =
+          validMove.color === 'b' ? blackRooksPosition[1] : whiteRooksPosition[1]
+        const rookToSquare =
+          validMove.color === 'b' ? blackKingAdjacent.right : whiteKingAdjacent.right
+        boardState.value[rookToSquare] = boardState.value[rookFromSquare] // Move rook
+        boardState.value[rookFromSquare] = null // Remove rook from the original square
+      }
+      //queenside castling
+      if (validMove.flags.includes('q')) {
+        const rookFromSquare =
+          validMove.color === 'b' ? blackRooksPosition[0] : whiteRooksPosition[0]
+        const rookToSquare =
+          validMove.color === 'b' ? blackKingAdjacent.left : whiteKingAdjacent.left
+        boardState.value[rookToSquare] = boardState.value[rookFromSquare] // Move rook
+        boardState.value[rookFromSquare] = null // Remove rook from the original square
+      }
       // Move piece
       chess.value.move({ from: actualFromSquare, to: actualToSquare })
       // Update boardState
@@ -232,7 +308,7 @@ const flipBoard = () => {
 }
 
 // Example FEN position
-setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQKR2 w Qkq - 6 5')
+setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 6 5')
 </script>
 
 <style scoped>
