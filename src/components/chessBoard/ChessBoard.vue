@@ -119,17 +119,7 @@ const highlightAttackerSquares = (event) => {
   const boardElement = document.querySelector('.chessboard-hidden')
   const rect = boardElement.getBoundingClientRect()
 
-  const mouseX = event.clientX - rect.left
-  const mouseY = event.clientY - rect.top
-  const squareSize = rect.width / 8
-  const column = isFlipped.value
-    ? 7 - Math.floor(mouseX / squareSize)
-    : Math.floor(mouseX / squareSize)
-  const row = isFlipped.value
-    ? 7 - Math.floor(mouseY / squareSize)
-    : Math.floor(mouseY / squareSize)
-
-  const squareName = chessBoardSquares[row * 8 + column]
+  const squareName = getSquareNameFromMouseEvent(event, rect)
 
   if (legalMovesForDraggingPiece.value.includes(squareName)) {
     const { attackers } = getAttackersAndDefenders(squareName)
@@ -142,6 +132,17 @@ const highlightAttackerSquares = (event) => {
       highlightedSquares.value[attacker] = { color: 'red', type: 'attack' }
     })
   }
+}
+
+const getSquareNameFromMouseEvent = (event, rect) => {
+  const squareSize = rect.width / 8
+  const column = isFlipped.value
+    ? 7 - Math.floor((event.clientX - rect.left) / squareSize)
+    : Math.floor((event.clientX - rect.left) / squareSize)
+  const row = isFlipped.value
+    ? 7 - Math.floor((event.clientY - rect.top) / squareSize)
+    : Math.floor((event.clientY - rect.top) / squareSize)
+  return chessBoardSquares[row * 8 + column]
 }
 
 // Function to get locations of given piece by name and color
@@ -262,26 +263,13 @@ const handleCellClick = (square, event) => {
   const existingHighlight = highlightedSquares.value[square]
 
   const toggleHighlight = (color) => {
-    if (existingHighlight) {
-      if (existingHighlight.color === color) {
-        highlightedSquares.value[square] = null
-      } else {
-        highlightedSquares.value[square] = { color }
-      }
-    } else {
-      highlightedSquares.value[square] = { color }
-    }
+    highlightedSquares.value[square] = existingHighlight?.color === color ? null : { color }
   }
 
-  if (event.altKey && event.shiftKey) {
-    toggleHighlight(colors.altShift)
-  } else if (event.ctrlKey) {
-    toggleHighlight(colors.ctrl)
-  } else if (event.shiftKey) {
-    toggleHighlight(colors.shift)
-  } else if (event.altKey) {
-    toggleHighlight(colors.alt)
-  }
+  if (event.altKey && event.shiftKey) toggleHighlight(colors.altShift)
+  else if (event.ctrlKey) toggleHighlight(colors.ctrl)
+  else if (event.shiftKey) toggleHighlight(colors.shift)
+  else if (event.altKey) toggleHighlight(colors.alt)
 }
 
 const setPositionFromFEN = (fen) => {
