@@ -92,9 +92,7 @@ const selectedCell = ref(null)
 const legalMovesForDraggingPiece = ref([])
 
 const chessBoardSquares = SQUARES
-const flippedChessBoardSquares = computed(() => {
-  return [...chessBoardSquares].reverse()
-})
+const flippedChessBoardSquares = computed(() => chessBoardSquares.slice().reverse())
 
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
@@ -182,27 +180,10 @@ const handleDragOver = (event) => {
 const getKingAdjacentSquares = (kingPosition) => {
   const file = kingPosition.charAt(0) // Extract the file (letter)
   const rank = parseInt(kingPosition.charAt(1)) // Extract the rank (number)
+  const files = 'abcdefgh'.split('') // List of valid files (columns)
+  const fileIndex = files.indexOf(file) // Get the index of the king's current file
 
-  const files = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'] // List of valid files (columns)
-
-  // Get the index of the king's current file
-  const fileIndex = files.indexOf(file)
-
-  // Calculate the left and right squares
-  let leftSquare = null
-  let rightSquare = null
-
-  // Left square is one file to the left of the current file, if it's not 'a'
-  if (fileIndex > 0) {
-    leftSquare = `${files[fileIndex - 1]}${rank}`
-  }
-
-  // Right square is one file to the right of the current file, if it's not 'h'
-  if (fileIndex < files.length - 1) {
-    rightSquare = `${files[fileIndex + 1]}${rank}`
-  }
-
-  return { left: leftSquare, right: rightSquare }
+  return { left: files[fileIndex - 1] + rank, right: files[fileIndex + 1] + rank }
 }
 
 const handleDrop = (toSquare) => {
@@ -289,9 +270,7 @@ const setPositionFromFEN = (fen) => {
 // On component mounted, check local storage for piece set
 onMounted(() => {
   const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
-  if (storedPieceSet) {
-    selectedChessPieceSet.value = storedPieceSet
-  }
+  if (storedPieceSet) selectedChessPieceSet.value = storedPieceSet
 })
 
 // Watch for changes to selectedChessPieceSet and save to local storage
