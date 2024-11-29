@@ -3,7 +3,7 @@
     <div class="chessboard-hidden" ref="hiddenBoard">
       <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
       <div
-        v-for="(square, index) in isFlipped ? flippedChessBoardSquares : chessBoardSquares"
+        v-for="(square, index) in currentBoardSquares"
         :key="square"
         class="chess-cell"
         :class="{ 'king-check': getKingInCheck(square) }"
@@ -92,7 +92,9 @@ const selectedCell = ref(null)
 const legalMovesForDraggingPiece = ref([])
 
 const chessBoardSquares = SQUARES
-const flippedChessBoardSquares = computed(() => chessBoardSquares.slice().reverse())
+const currentBoardSquares = computed(() =>
+  isFlipped.value ? chessBoardSquares.slice().reverse() : chessBoardSquares,
+)
 
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
