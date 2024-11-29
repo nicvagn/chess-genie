@@ -104,6 +104,56 @@ const colors = {
   altShift: 'yellow',
 }
 
+const handleDragStart = (square) => {
+  if (boardState.value[square]) {
+    selectedCell.value = square
+    legalMovesForDraggingPiece.value = chess.value
+      .moves({ square: square, verbose: true })
+      .map((move) => move.to)
+    legalMovesForDraggingPiece.value.forEach((move) => {
+      highlightedSquares.value[move] = { color: 'green', type: 'move' }
+    })
+  }
+}
+
+const handleDragOver = (event) => {
+  event.preventDefault() // Allow the drop
+}
+
+const handleDrop = (toSquare) => {
+  const validMove = chess.value
+    .moves({ square: selectedCell.value, verbose: true })
+    .find((move) => move.to === toSquare)
+  const fromSquare = selectedCell.value
+
+  if (validMove) {
+    handleCastling(validMove)
+    handleEnPassant(validMove, toSquare)
+
+    // Move piece
+    chess.value.move({ from: fromSquare, to: toSquare })
+    // Update boardState
+    boardState.value[toSquare] = boardState.value[fromSquare]
+    boardState.value[fromSquare] = null
+  }
+  // Clear highlights after move
+  highlightedSquares.value = {}
+  selectedCell.value = null
+}
+
+const handleCellClick = (square, event) => {
+  const existingHighlight = highlightedSquares.value[square]
+
+  const toggleHighlight = (color) => {
+    highlightedSquares.value[square] = existingHighlight?.color === color ? null : { color }
+  }
+
+  if (event.altKey && event.shiftKey) toggleHighlight(colors.altShift)
+  else if (event.ctrlKey) toggleHighlight(colors.ctrl)
+  else if (event.shiftKey) toggleHighlight(colors.shift)
+  else if (event.altKey) toggleHighlight(colors.alt)
+}
+
 const getAttackersAndDefenders = (square) => {
   const currentColor = chess.value.turn() // Get the current player's turn color
   const opponentColor = currentColor === 'w' ? 'b' : 'w' // Get the opponent's color
@@ -114,10 +164,7 @@ const getAttackersAndDefenders = (square) => {
 }
 
 const highlightAttackerSquares = (event) => {
-  const boardElement = document.querySelector('.chessboard-hidden')
-  const rect = boardElement.getBoundingClientRect()
-
-  const squareName = getSquareNameFromMouseEvent(event, rect)
+  const squareName = getSquareNameFromMouseEvent(event)
 
   if (legalMovesForDraggingPiece.value.includes(squareName)) {
     const { attackers } = getAttackersAndDefenders(squareName)
@@ -132,7 +179,9 @@ const highlightAttackerSquares = (event) => {
   }
 }
 
-const getSquareNameFromMouseEvent = (event, rect) => {
+const getSquareNameFromMouseEvent = (event) => {
+  const boardElement = document.querySelector('.chessboard-hidden')
+  const rect = boardElement.getBoundingClientRect()
   const squareSize = rect.width / 8
   const column = isFlipped.value
     ? 7 - Math.floor((event.clientX - rect.left) / squareSize)
@@ -160,22 +209,6 @@ const getKingInCheck = (square) => {
   return false
 }
 
-const handleDragStart = (square) => {
-  if (boardState.value[square]) {
-    selectedCell.value = square
-    legalMovesForDraggingPiece.value = chess.value
-      .moves({ square: square, verbose: true })
-      .map((move) => move.to)
-    legalMovesForDraggingPiece.value.forEach((move) => {
-      highlightedSquares.value[move] = { color: 'green', type: 'move' }
-    })
-  }
-}
-
-const handleDragOver = (event) => {
-  event.preventDefault() // Allow the drop
-}
-
 // Function to get the king's left and right squares
 const getKingAdjacentSquares = (kingPosition) => {
   const file = kingPosition.charAt(0) // Extract the file (letter)
@@ -184,34 +217,6 @@ const getKingAdjacentSquares = (kingPosition) => {
   const fileIndex = files.indexOf(file) // Get the index of the king's current file
 
   return { left: files[fileIndex - 1] + rank, right: files[fileIndex + 1] + rank }
-}
-
-const handleDrop = (toSquare) => {
-  const actualToSquare = isFlipped.value
-    ? flippedChessBoardSquares.value.find((sq) => sq === toSquare)
-    : toSquare
-  if (selectedCell.value) {
-    const fromSquare = selectedCell.value
-    const actualFromSquare = isFlipped.value
-      ? flippedChessBoardSquares.value.find((sq) => sq === fromSquare)
-      : fromSquare
-    const legalMoves = chess.value.moves({ square: actualFromSquare, verbose: true })
-    const validMove = legalMoves.find((move) => move.to === actualToSquare)
-
-    if (validMove) {
-      handleCastling(validMove)
-      handleEnPassant(validMove, actualToSquare)
-
-      // Move piece
-      chess.value.move({ from: actualFromSquare, to: actualToSquare })
-      // Update boardState
-      boardState.value[actualToSquare] = boardState.value[actualFromSquare]
-      boardState.value[actualFromSquare] = null
-    }
-    // Clear highlights after move
-    highlightedSquares.value = {}
-    selectedCell.value = null
-  }
 }
 
 // Handle both-side castling - update the rook position
@@ -240,19 +245,6 @@ const handleEnPassant = (validMove, actualToSquare) => {
   }
 }
 
-const handleCellClick = (square, event) => {
-  const existingHighlight = highlightedSquares.value[square]
-
-  const toggleHighlight = (color) => {
-    highlightedSquares.value[square] = existingHighlight?.color === color ? null : { color }
-  }
-
-  if (event.altKey && event.shiftKey) toggleHighlight(colors.altShift)
-  else if (event.ctrlKey) toggleHighlight(colors.ctrl)
-  else if (event.shiftKey) toggleHighlight(colors.shift)
-  else if (event.altKey) toggleHighlight(colors.alt)
-}
-
 const setPositionFromFEN = (fen) => {
   chess.value.load(fen) // Load FEN into chess.js
 
@@ -267,6 +259,10 @@ const setPositionFromFEN = (fen) => {
   }
 }
 
+const flipBoard = () => {
+  isFlipped.value = !isFlipped.value
+}
+
 // On component mounted, check local storage for piece set
 onMounted(() => {
   const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
@@ -277,10 +273,6 @@ onMounted(() => {
 watch(selectedChessPieceSet, (newPieceSet) => {
   localStorage.setItem('selectedChessPieceSet', newPieceSet)
 })
-
-const flipBoard = () => {
-  isFlipped.value = !isFlipped.value
-}
 
 // Example FEN position
 setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1b3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 6 5')
