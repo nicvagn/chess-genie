@@ -11,7 +11,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
-    "chess.js": "^1.0.0-beta.8",
+    "chess.js": "github:jhlywa/chess.js",
     "chessground": "^9.1.1",
     "pinia": "^2.2.6",
     "vue": "^3.5.12",

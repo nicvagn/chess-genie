@@ -1,11 +1,5 @@
 <template>
-  <div
-    class="chessboard"
-    ref="board"
-    @mousedown="startDrag"
-    @mouseup="endDrag"
-    @mousemove="handleMouseMove"
-  >
+  <div class="chessboard" ref="board" @mousedown="startDrag" @mouseup="endDrag">
     <div class="chessboard-hidden" ref="hiddenBoard">
       <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
       <div
@@ -19,7 +13,7 @@
       >
         <span
           class="square-coordinates"
-          :style="{ color: index % 2 === 0 ? 'darkgray' : 'black' }"
+          :style="{ color: Math.floor(index / 8) % 2 !== index % 2 ? 'white' : 'black' }"
           >{{ square }}</span
         >
 
@@ -71,6 +65,7 @@
           }"
           @dragstart="handleDragStart(square)"
           :draggable="boardState[square] !== null"
+          @drag="highlightAttackerSquares"
         />
       </div>
     </div>
@@ -94,6 +89,7 @@ const boardState = ref({}) // Use an object to map square to pieces.
 const highlightedSquares = ref({})
 const isFlipped = ref(false)
 const selectedCell = ref(null)
+const legalMovesForDraggingPiece = ref([])
 
 const chessBoardSquares = SQUARES
 const flippedChessBoardSquares = computed(() => {
@@ -108,6 +104,52 @@ const colors = {
   shift: 'red',
   alt: 'green',
   altShift: 'yellow',
+}
+
+const getAttackersAndDefenders = (square) => {
+  const currentColor = chess.value.turn() // Get the current player's turn color
+  const opponentColor = currentColor === 'w' ? 'b' : 'w' // Get the opponent's color
+  const attackers = chess.value.attackers(square, opponentColor)
+  const defenders = chess.value.attackers(square)
+
+  return { attackers, defenders }
+}
+
+const highlightAttackerSquares = (event) => {
+  const boardElement = document.querySelector('.chessboard-hidden')
+  const rect = boardElement.getBoundingClientRect()
+
+  // Calculate mouse position relative to the board
+  const mouseX = event.clientX - rect.left
+  const mouseY = event.clientY - rect.top
+
+  // Calculate the column and row
+  const squareSize = rect.width / 8
+  const column = isFlipped.value
+    ? 7 - Math.floor(mouseX / squareSize)
+    : Math.floor(mouseX / squareSize)
+  const row = isFlipped.value
+    ? 7 - Math.floor(mouseY / squareSize)
+    : Math.floor(mouseY / squareSize)
+
+  // Get the corresponding square name (e.g., 'e4')
+  const squareName = chessBoardSquares[row * 8 + column]
+
+  if (legalMovesForDraggingPiece.value.includes(squareName)) {
+    const { attackers } = getAttackersAndDefenders(squareName)
+    // Clear previous attack highlights only
+    for (const square in highlightedSquares.value) {
+      if (highlightedSquares.value[square] && highlightedSquares.value[square].type === 'attack') {
+        delete highlightedSquares.value[square]
+      }
+    }
+
+    if (attackers.length > 0) {
+      attackers.forEach((attacker) => {
+        highlightedSquares.value[attacker] = { color: 'red', type: 'attack' }
+      })
+    }
+  }
 }
 
 // Function to get the opponent piece position
@@ -136,6 +178,9 @@ const getKingInCheck = (square) => {
 const handleDragStart = (square) => {
   if (boardState.value[square]) {
     selectedCell.value = square
+    legalMovesForDraggingPiece.value = chess.value
+      .moves({ square: square, verbose: true })
+      .map((move) => move.to)
     const legalMoves = chess.value.moves({ square: square, verbose: true })
     // Store legal moves in highlightedSquares
     legalMoves.forEach((move) => {
@@ -308,7 +353,7 @@ const flipBoard = () => {
 }
 
 // Example FEN position
-setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 6 5')
+setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1b3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 6 5')
 </script>
 
 <style scoped>
