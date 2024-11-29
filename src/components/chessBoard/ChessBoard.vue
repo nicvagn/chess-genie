@@ -119,11 +119,8 @@ const highlightAttackerSquares = (event) => {
   const boardElement = document.querySelector('.chessboard-hidden')
   const rect = boardElement.getBoundingClientRect()
 
-  // Calculate mouse position relative to the board
   const mouseX = event.clientX - rect.left
   const mouseY = event.clientY - rect.top
-
-  // Calculate the column and row
   const squareSize = rect.width / 8
   const column = isFlipped.value
     ? 7 - Math.floor(mouseX / squareSize)
@@ -132,44 +129,33 @@ const highlightAttackerSquares = (event) => {
     ? 7 - Math.floor(mouseY / squareSize)
     : Math.floor(mouseY / squareSize)
 
-  // Get the corresponding square name (e.g., 'e4')
   const squareName = chessBoardSquares[row * 8 + column]
 
   if (legalMovesForDraggingPiece.value.includes(squareName)) {
     const { attackers } = getAttackersAndDefenders(squareName)
-    // Clear previous attack highlights only
-    for (const square in highlightedSquares.value) {
-      if (highlightedSquares.value[square] && highlightedSquares.value[square].type === 'attack') {
-        delete highlightedSquares.value[square]
-      }
-    }
 
-    if (attackers.length > 0) {
-      attackers.forEach((attacker) => {
-        highlightedSquares.value[attacker] = { color: 'red', type: 'attack' }
-      })
-    }
+    Object.keys(highlightedSquares.value)
+      .filter((square) => highlightedSquares.value[square]?.type === 'attack')
+      .forEach((square) => delete highlightedSquares.value[square])
+
+    attackers.forEach((attacker) => {
+      highlightedSquares.value[attacker] = { color: 'red', type: 'attack' }
+    })
   }
 }
 
-// Function to get the opponent piece position
-const getOpponentPiecePosition = (pieceName) => {
-  const currentColor = chess.value.turn()
-
-  // Loop through each square on the board, searching for the opponent's piece
-  for (const square of chessBoardSquares) {
+// Function to get locations of given piece by name and color
+const getPieceLocations = (pieceName, pieceColor) => {
+  return chessBoardSquares.filter((square) => {
     const piece = chess.value.get(square)
-    if (piece && piece.color === currentColor && piece.type === pieceName) {
-      return square
-    }
-  }
-  return null
+    return piece && piece.color === pieceColor && piece.type === pieceName
+  })
 }
 
 // Helper function to get the king's position when in check
 const getKingInCheck = (square) => {
   if (chess.value.isCheck()) {
-    const kingPosition = getOpponentPiecePosition('k') // Get the opponent's king position
+    const kingPosition = getPieceLocations('k', chess.value.turn())[0] // Get the opponent's king position
     return kingPosition === square
   }
   return false
@@ -181,32 +167,14 @@ const handleDragStart = (square) => {
     legalMovesForDraggingPiece.value = chess.value
       .moves({ square: square, verbose: true })
       .map((move) => move.to)
-    const legalMoves = chess.value.moves({ square: square, verbose: true })
-    // Store legal moves in highlightedSquares
-    legalMoves.forEach((move) => {
-      highlightedSquares.value[move.to] = { color: 'green', type: 'move' } // Highlight with green circles
+    legalMovesForDraggingPiece.value.forEach((move) => {
+      highlightedSquares.value[move] = { color: 'green', type: 'move' }
     })
   }
 }
 
 const handleDragOver = (event) => {
   event.preventDefault() // Allow the drop
-}
-
-// Function to get locations of given piece by name and color
-const getPieceLocations = (pieceName, pieceColor) => {
-  const positions = []
-
-  // Loop through each square on the board
-  for (const square of chessBoardSquares) {
-    const piece = chess.value.get(square) // Get the piece at the current square
-    // Check if the piece exists and matches the specified color and name
-    if (piece && piece.color === pieceColor && piece.type === pieceName) {
-      positions.push(square) // Add the square to the results
-    }
-  }
-
-  return positions // Return an array of squares that contain the specified piece
 }
 
 // Function to get the king's left and right squares
@@ -249,39 +217,9 @@ const handleDrop = (toSquare) => {
     const validMove = legalMoves.find((move) => move.to === actualToSquare)
 
     if (validMove) {
-      const blackRooksPosition = getPieceLocations('r', 'b')
-      const blackKingPosition = getPieceLocations('k', 'b')[0]
-      const whiteRooksPosition = getPieceLocations('r', 'w')
-      const whiteKingPosition = getPieceLocations('k', 'w')[0]
+      handleCastling(validMove)
+      handleEnPassant(validMove, actualToSquare)
 
-      const whiteKingAdjacent = getKingAdjacentSquares(whiteKingPosition)
-      const blackKingAdjacent = getKingAdjacentSquares(blackKingPosition)
-
-      // Handle en passant - remove the captured pawn
-      if (validMove.flags.includes('e')) {
-        const capturedPawnSquare =
-          actualToSquare.charAt(0) +
-          (parseInt(actualToSquare.charAt(1)) + (chess.value.turn() === 'w' ? -1 : 1))
-        boardState.value[capturedPawnSquare] = null // Remove the captured pawn
-      }
-      // kingside castling
-      if (validMove.flags.includes('k')) {
-        const rookFromSquare =
-          validMove.color === 'b' ? blackRooksPosition[1] : whiteRooksPosition[1]
-        const rookToSquare =
-          validMove.color === 'b' ? blackKingAdjacent.right : whiteKingAdjacent.right
-        boardState.value[rookToSquare] = boardState.value[rookFromSquare] // Move rook
-        boardState.value[rookFromSquare] = null // Remove rook from the original square
-      }
-      //queenside castling
-      if (validMove.flags.includes('q')) {
-        const rookFromSquare =
-          validMove.color === 'b' ? blackRooksPosition[0] : whiteRooksPosition[0]
-        const rookToSquare =
-          validMove.color === 'b' ? blackKingAdjacent.left : whiteKingAdjacent.left
-        boardState.value[rookToSquare] = boardState.value[rookFromSquare] // Move rook
-        boardState.value[rookFromSquare] = null // Remove rook from the original square
-      }
       // Move piece
       chess.value.move({ from: actualFromSquare, to: actualToSquare })
       // Update boardState
@@ -290,8 +228,33 @@ const handleDrop = (toSquare) => {
     }
     // Clear highlights after move
     highlightedSquares.value = {}
-
     selectedCell.value = null
+  }
+}
+
+// Handle both-side castling - update the rook position
+const handleCastling = (validMove) => {
+  if (validMove.flags.includes('k') || validMove.flags.includes('q')) {
+    const color = validMove.color
+    const rookFromSquare = getPieceLocations('r', color)[validMove.flags.includes('k') ? 1 : 0]
+    const kingPosition = getPieceLocations('k', color)[0]
+    const kingAdjacentSquares = getKingAdjacentSquares(kingPosition)
+    const rookToSquare = validMove.flags.includes('k')
+      ? kingAdjacentSquares.right
+      : kingAdjacentSquares.left
+
+    boardState.value[rookToSquare] = boardState.value[rookFromSquare]
+    boardState.value[rookFromSquare] = null
+  }
+}
+
+// Handle en passant - remove the captured pawn
+const handleEnPassant = (validMove, actualToSquare) => {
+  if (validMove.flags.includes('e')) {
+    const capturedPawnSquare =
+      actualToSquare.charAt(0) +
+      (parseInt(actualToSquare.charAt(1)) + (chess.value.turn() === 'w' ? -1 : 1))
+    boardState.value[capturedPawnSquare] = null
   }
 }
 
