@@ -69,7 +69,25 @@
         />
       </div>
     </div>
+    <!-- Promotion Modal -->
+    <div v-if="showPromotionModal" class="promotion-modal">
+      <div class="promotion-options">
+        <div
+          v-for="(piece, symbol) in promotionPieces"
+          :key="symbol"
+          class="promotion-option"
+          @click="promotePawn(symbol)"
+        >
+          <img
+            :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
+            :alt="symbol"
+            class="promotion-image"
+          />
+        </div>
+      </div>
+    </div>
   </div>
+
   <div>
     <button @click="flipBoard">Flip Board</button>
     <select v-model="selectedChessPieceSet">
@@ -77,6 +95,13 @@
         {{ value }}
       </option>
     </select>
+  </div>
+  <div class="move-history">
+    <div v-for="(move, index) in moveHistory" :key="index">
+      <button class="move-button" @click="navigateToMove(index)">
+        {{ move.san }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -91,6 +116,8 @@ const isFlipped = ref(false)
 const selectedCell = ref(null)
 const legalMovesForDraggingPiece = ref([])
 
+const moveHistory = ref([{ san: '', before: '', after: '' }])
+
 const chessBoardSquares = SQUARES
 const currentBoardSquares = computed(() =>
   isFlipped.value ? chessBoardSquares.slice().reverse() : chessBoardSquares,
@@ -98,6 +125,16 @@ const currentBoardSquares = computed(() =>
 
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
+
+const showPromotionModal = ref(false)
+const promotionPieces = ref({
+  q: 'Queen',
+  r: 'Rook',
+  b: 'Bishop',
+  n: 'Knight',
+})
+const chosenPromotionPiece = ref('q') // Default promotion to a Queen
+const promotionSquare = ref(null) // To keep track of where the promotion happens
 
 const colors = {
   ctrl: 'blue',
@@ -127,16 +164,35 @@ const handleDrop = (toSquare) => {
     .moves({ square: selectedCell.value, verbose: true })
     .find((move) => move.to === toSquare)
   const fromSquare = selectedCell.value
+  const pieceType = boardState.value[fromSquare]?.charAt(1).toLowerCase()
 
   if (validMove) {
     handleCastling(validMove)
     handleEnPassant(validMove, toSquare)
 
+    // Handle pawn promotion
+    if (pieceType === 'p' && (toSquare.charAt(1) === '8' || toSquare.charAt(1) === '1')) {
+      promotionSquare.value = toSquare // Save the square for promotion
+      showPromotionModal.value = true // Display the promotion options
+      return
+    }
+
+    // Get FEN before the move
+    const beforeFEN = chess.value.fen()
     // Move piece
     chess.value.move({ from: fromSquare, to: toSquare })
+    // Get FEN after the move
+    const afterFEN = chess.value.fen()
+
     // Update boardState
     boardState.value[toSquare] = boardState.value[fromSquare]
     boardState.value[fromSquare] = null
+
+    moveHistory.value.push({
+      san: validMove.san,
+      before: beforeFEN,
+      after: afterFEN,
+    })
   }
   // Clear highlights after move
   highlightedSquares.value = {}
@@ -154,6 +210,25 @@ const handleCellClick = (square, event) => {
   else if (event.ctrlKey) toggleHighlight(colors.ctrl)
   else if (event.shiftKey) toggleHighlight(colors.shift)
   else if (event.altKey) toggleHighlight(colors.alt)
+}
+
+const promotePawn = (symbol) => {
+  const color = chess.value.turn() // Get the current turn color
+  chosenPromotionPiece.value = symbol
+
+  // Update the boardState and the chess.js state
+  boardState.value[promotionSquare.value] = `${color}${chosenPromotionPiece.value}` // e.g., 'wQ', 'bR'
+  chess.value.move({
+    from: selectedCell.value,
+    to: promotionSquare.value,
+    promotion: chosenPromotionPiece.value, // This must match with the chess.js promotion type
+  })
+  boardState.value[selectedCell.value] = null
+
+  showPromotionModal.value = false // Hide the modal after promotion
+  promotionSquare.value = null
+  highlightedSquares.value = {}
+  selectedCell.value = null
 }
 
 const getAttackersAndDefenders = (square) => {
@@ -247,6 +322,14 @@ const handleEnPassant = (validMove, actualToSquare) => {
   }
 }
 
+const navigateToMove = (index) => {
+  // Get the FEN from moveHistory at the specified index
+  const selectedMove = moveHistory.value[index]
+  if (selectedMove) {
+    setPositionFromFEN(selectedMove.after)
+  }
+}
+
 const setPositionFromFEN = (fen) => {
   chess.value.load(fen) // Load FEN into chess.js
 
@@ -277,7 +360,7 @@ watch(selectedChessPieceSet, (newPieceSet) => {
 })
 
 // Example FEN position
-setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1b3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 6 5')
+setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5')
 </script>
 
 <style scoped>
@@ -360,5 +443,54 @@ setPositionFromFEN('rnb1k2r/ppppqppp/5n2/2b1b3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+.move-history {
+  margin-top: 20px;
+  display: inline-flex;
+}
+
+.move-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  color: blue;
+  margin: 2px 0;
+}
+
+.promotion-modal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border: 2px solid #000;
+  padding: 1em;
+  z-index: 1000;
+}
+.promotion-options {
+  display: flex;
+  justify-content: space-around;
+  margin: 10px 0;
+}
+
+.promotion-option {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.promotion-image {
+  width: 50px;
+  height: auto;
+  margin: 0 5px;
+  border: 2px solid transparent;
+  transition: border 0.3s;
+}
+
+.promotion-option:hover .promotion-image {
+  border-color: blue;
 }
 </style>
