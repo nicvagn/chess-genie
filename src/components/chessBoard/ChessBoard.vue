@@ -98,9 +98,7 @@
   </div>
   <div class="move-history">
     <div v-for="(move, index) in moveHistory" :key="index">
-      <button class="move-button" @click="navigateToMove(index)">
-        {{ move.san }}
-      </button>
+      <p class="move-button" @click="navigateToMove(index)">{{ move.san }}</p>
     </div>
   </div>
 </template>
@@ -116,7 +114,7 @@ const isFlipped = ref(false)
 const selectedCell = ref(null)
 const legalMovesForDraggingPiece = ref([])
 
-const moveHistory = ref([{ san: '', before: '', after: '' }])
+const moveHistory = ref([])
 
 const chessBoardSquares = SQUARES
 const currentBoardSquares = computed(() =>
@@ -133,7 +131,6 @@ const promotionPieces = ref({
   b: 'Bishop',
   n: 'Knight',
 })
-const chosenPromotionPiece = ref('q') // Default promotion to a Queen
 const promotionSquare = ref(null) // To keep track of where the promotion happens
 
 const colors = {
@@ -160,43 +157,9 @@ const handleDragOver = (event) => {
 }
 
 const handleDrop = (toSquare) => {
-  const validMove = chess.value
-    .moves({ square: selectedCell.value, verbose: true })
-    .find((move) => move.to === toSquare)
-  const fromSquare = selectedCell.value
-  const pieceType = boardState.value[fromSquare]?.charAt(1).toLowerCase()
-
-  if (validMove) {
-    handleCastling(validMove)
-    handleEnPassant(validMove, toSquare)
-
-    // Handle pawn promotion
-    if (pieceType === 'p' && (toSquare.charAt(1) === '8' || toSquare.charAt(1) === '1')) {
-      promotionSquare.value = toSquare // Save the square for promotion
-      showPromotionModal.value = true // Display the promotion options
-      return
-    }
-
-    // Get FEN before the move
-    const beforeFEN = chess.value.fen()
-    // Move piece
-    chess.value.move({ from: fromSquare, to: toSquare })
-    // Get FEN after the move
-    const afterFEN = chess.value.fen()
-
-    // Update boardState
-    boardState.value[toSquare] = boardState.value[fromSquare]
-    boardState.value[fromSquare] = null
-
-    moveHistory.value.push({
-      san: validMove.san,
-      before: beforeFEN,
-      after: afterFEN,
-    })
+  if (selectedCell.value) {
+    movePiece(selectedCell.value, toSquare)
   }
-  // Clear highlights after move
-  highlightedSquares.value = {}
-  selectedCell.value = null
 }
 
 const handleCellClick = (square, event) => {
@@ -212,20 +175,53 @@ const handleCellClick = (square, event) => {
   else if (event.altKey) toggleHighlight(colors.alt)
 }
 
-const promotePawn = (symbol) => {
-  const color = chess.value.turn() // Get the current turn color
-  chosenPromotionPiece.value = symbol
+const movePiece = (fromSquare, toSquare) => {
+  const validMove = chess.value
+    .moves({ square: fromSquare, verbose: true })
+    .find((move) => move.to === toSquare)
 
-  // Update the boardState and the chess.js state
-  boardState.value[promotionSquare.value] = `${color}${chosenPromotionPiece.value}` // e.g., 'wQ', 'bR'
+  if (validMove) {
+    handleCastling(validMove)
+    handleEnPassant(validMove, toSquare)
+
+    // Handle pawn promotion
+    if (validMove.piece === 'p' && (toSquare.charAt(1) === '8' || toSquare.charAt(1) === '1')) {
+      showPromotionModal.value = true
+      promotionSquare.value = toSquare
+      return
+    }
+    // Regular move
+    chess.value.move({ from: fromSquare, to: toSquare })
+    boardState.value[toSquare] = boardState.value[fromSquare]
+    boardState.value[fromSquare] = null
+
+    // Add move to history
+    moveHistory.value.push({
+      san: validMove.san,
+      before: validMove.before,
+      after: validMove.after,
+      color: validMove.color,
+      from: validMove.from,
+      to: validMove.to,
+    })
+  }
+  // Deselect after move
+  highlightedSquares.value = {}
+  selectedCell.value = null
+}
+
+const promotePawn = (symbol) => {
+  const color = chess.value.turn()
+
   chess.value.move({
     from: selectedCell.value,
     to: promotionSquare.value,
-    promotion: chosenPromotionPiece.value, // This must match with the chess.js promotion type
+    promotion: symbol,
   })
+  boardState.value[promotionSquare.value] = `${color}${symbol.toUpperCase()}`
   boardState.value[selectedCell.value] = null
 
-  showPromotionModal.value = false // Hide the modal after promotion
+  showPromotionModal.value = false
   promotionSquare.value = null
   highlightedSquares.value = {}
   selectedCell.value = null
@@ -456,7 +452,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   cursor: pointer;
   text-decoration: underline;
   color: blue;
-  margin: 2px 0;
+  margin: 0 5px 0 0;
 }
 
 .promotion-modal {
