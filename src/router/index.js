@@ -9,6 +9,12 @@ const router = createRouter({
 
       component: () => import('../views/ChessBoardView.vue'),
     },
+    {
+      path: '/cg',
+      name: 'chessground',
+
+      component: () => import('../views/ChessGroundView.vue'),
+    },
   ],
 })
 
