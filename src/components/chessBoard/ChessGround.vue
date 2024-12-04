@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { Chess, DEFAULT_POSITION } from 'chess.js'
+import { Chess, DEFAULT_POSITION, SQUARES } from 'chess.js'
 import { Chessground } from 'chessground'
 import { onMounted, ref, watch } from 'vue'
 import '../../../node_modules/chessground/assets/chessground.base.css'
@@ -25,7 +25,6 @@ const isFlipped = ref(false)
 let board = ref(null)
 let chess = new Chess()
 let selectedSquare = ref(null)
-let legalMoves = ref([])
 
 // Initialize the Chessground board and set the initial FEN string
 const initBoard = () => {
@@ -34,7 +33,7 @@ const initBoard = () => {
   // If the board is already created, just update the orientation
   if (board.value) {
     board.value.set({
-      orientation: orientation, // Only change the orientation
+      orientation: orientation,
     })
     return
   }
@@ -48,8 +47,9 @@ const initBoard = () => {
     coordinatesOnSquares: true,
     orientation: orientation,
     movable: {
-      free: true,
+      free: false,
       showDests: true,
+      dests: getDests(),
       color: chess.turn() === 'w' ? 'white' : 'black',
     },
     animation: {
@@ -60,7 +60,7 @@ const initBoard = () => {
       check: true,
     },
     events: {
-      move: (from, to) => handleMove(from, to), // Listen for move events
+      move: (from, to) => handleMove(from, to),
       select: (square) => handleSelect(square),
     },
   })
@@ -74,32 +74,47 @@ const initBoard = () => {
 
 // Handle move event
 const handleMove = (from, to) => {
-  const move = chess.move({ from, to })
-  if (move === null) {
+  const legalMoves = chess.moves({ verbose: true })
+  const move = legalMoves.find((move) => move.from === from && move.to === to)
+
+  if (move === null || move === undefined) {
     return false
   }
+  chess.move(move)
+
+  // Update board config after the move
   board.value.set({
-    fen: chess.fen(), // Update the FEN string
+    fen: chess.fen(),
+    movable: {
+      dests: getDests(),
+      color: chess.turn() == 'w' ? 'white' : 'black',
+    },
   })
-  console.log(`${from} to ${to}`)
   return true
+}
+
+const getDests = () => {
+  const dests = new Map()
+  SQUARES.forEach((square) => {
+    const legalMoves = chess.moves({ square: square, verbose: true })
+    if (legalMoves.length)
+      dests.set(
+        square,
+        legalMoves.map((move) => move.to),
+      )
+  })
+  return dests
 }
 
 // Handle piece selection
 const handleSelect = (square) => {
   selectedSquare.value = square
 
-  // const legalMoves = chess.moves({ square, verbose: true }).map((move) => move.to)
-
-  legalMoves.value.push(chess.moves({ square, verbose: true }).map((move) => move.to))
-
   const piece = chess.get(square)
 
   if (piece) {
     const pieceName = piece.type
     const pieceColor = piece.color
-
-    console.log(`${pieceColor}${pieceName.toUpperCase()} on ${square}`)
 
     return { pieceName, pieceColor, pieceSquare: square }
   } else {
