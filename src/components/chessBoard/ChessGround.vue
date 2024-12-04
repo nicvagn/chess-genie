@@ -82,12 +82,17 @@ const handleMove = (from, to) => {
   }
   chess.move(move)
 
+  if (chess.isCheck()) {
+    const kingPOS = getPieceLocations('k', chess.turn())
+    console.log(kingPOS)
+  }
+
   // Update board config after the move
   board.value.set({
     fen: chess.fen(),
     movable: {
       dests: getDests(),
-      color: chess.turn() == 'w' ? 'white' : 'black',
+      color: chess.turn() === 'w' ? 'white' : 'black',
     },
   })
   return true
@@ -120,6 +125,14 @@ const handleSelect = (square) => {
   } else {
     return null
   }
+}
+
+// Function to get locations of given piece by name and color
+const getPieceLocations = (pieceName, pieceColor) => {
+  return SQUARES.filter((square) => {
+    const piece = chess.get(square)
+    return piece && piece.color === pieceColor && piece.type === pieceName
+  })
 }
 
 // Flip the board orientation
