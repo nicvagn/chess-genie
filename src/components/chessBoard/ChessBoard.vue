@@ -190,6 +190,7 @@ const movePiece = (fromSquare, toSquare) => {
       promotionSquare.value = toSquare
       return
     }
+
     // Regular move
     chess.value.move({ from: fromSquare, to: toSquare })
     boardState.value[toSquare] = boardState.value[fromSquare]
@@ -213,13 +214,27 @@ const movePiece = (fromSquare, toSquare) => {
 const promotePawn = (symbol) => {
   const color = chess.value.turn()
 
-  chess.value.move({
-    from: selectedCell.value,
-    to: promotionSquare.value,
-    promotion: symbol,
-  })
-  boardState.value[promotionSquare.value] = `${color}${symbol.toUpperCase()}`
-  boardState.value[selectedCell.value] = null
+  const legalMoves = chess.value.moves({ square: selectedCell.value, verbose: true })
+
+  if (legalMoves) {
+    const promotionMove = chess.value.move({
+      from: selectedCell.value,
+      to: promotionSquare.value,
+      promotion: symbol,
+    })
+    boardState.value[promotionSquare.value] = `${color}${symbol.toUpperCase()}`
+    boardState.value[selectedCell.value] = null
+
+    // Add move to history
+    moveHistory.value.push({
+      san: promotionMove.san,
+      before: promotionMove.before,
+      after: promotionMove.after,
+      color: promotionMove.color,
+      from: promotionMove.from,
+      to: promotionMove.to,
+    })
+  }
 
   showPromotionModal.value = false
   promotionSquare.value = null
