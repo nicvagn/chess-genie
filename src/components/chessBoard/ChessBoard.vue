@@ -6,7 +6,10 @@
         v-for="(square, index) in currentBoardSquares"
         :key="square"
         class="chess-cell"
-        :class="{ 'king-check': getKingInCheck(square) }"
+        :class="{
+          'king-check': getKingInCheck(square),
+          'last-move': lastMoveSquares.from === square || lastMoveSquares.to === square,
+        }"
         @dragover="handleDragOver"
         @drop="handleDrop(square)"
         @click="handleCellClick(square, $event)"
@@ -115,6 +118,7 @@ const selectedCell = ref(null)
 const legalMovesForDraggingPiece = ref([])
 
 const moveHistory = ref([])
+const lastMoveSquares = ref({ from: null, to: null })
 
 const chessBoardSquares = SQUARES
 const currentBoardSquares = computed(() =>
@@ -196,6 +200,8 @@ const movePiece = (fromSquare, toSquare) => {
     boardState.value[toSquare] = boardState.value[fromSquare]
     boardState.value[fromSquare] = null
 
+    lastMoveSquares.value = { from: fromSquare, to: toSquare }
+
     // Add move to history
     moveHistory.value.push({
       san: validMove.san,
@@ -224,6 +230,8 @@ const promotePawn = (symbol) => {
     })
     boardState.value[promotionSquare.value] = `${color}${symbol.toUpperCase()}`
     boardState.value[selectedCell.value] = null
+
+    lastMoveSquares.value = { from: selectedCell.value, to: promotionSquare.value }
 
     // Add move to history
     moveHistory.value.push({
@@ -337,6 +345,7 @@ const navigateToMove = (index) => {
   // Get the FEN from moveHistory at the specified index
   const selectedMove = moveHistory.value[index]
   if (selectedMove) {
+    lastMoveSquares.value = { from: selectedMove.from, to: selectedMove.to }
     setPositionFromFEN(selectedMove.after)
   }
 }
@@ -420,7 +429,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
 }
 
 .selected {
-  background-color: rgba(0, 136, 255, 0.461);
+  background-color: rgba(20, 85, 30, 0.5);
 }
 
 .draw-arrows {
@@ -442,7 +451,18 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
 }
 
 .king-check {
-  background-color: rgba(255, 0, 0, 0.5);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 0, 0, 1) 0%,
+    rgba(231, 0, 0, 1) 25%,
+    rgba(221, 0, 0, 1) 45%,
+    rgba(169, 0, 0, 0) 80%,
+    rgba(158, 0, 0, 0) 100%
+  );
+}
+
+.last-move {
+  background-color: rgba(155, 199, 0, 0.41);
 }
 
 .highlight-circle {
@@ -461,7 +481,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   display: inline-flex;
 }
 
-.move-button {
+.move-history .move-button {
   background: none;
   border: none;
   cursor: pointer;
@@ -480,17 +500,13 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   padding: 1em;
   z-index: 1000;
 }
+
 .promotion-options {
   display: flex;
+  align-items: center;
   justify-content: space-around;
   margin: 10px 0;
-}
-
-.promotion-option {
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .promotion-image {
@@ -501,7 +517,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   transition: border 0.3s;
 }
 
-.promotion-option:hover .promotion-image {
+.promotion-image:hover {
   border-color: blue;
 }
 </style>
