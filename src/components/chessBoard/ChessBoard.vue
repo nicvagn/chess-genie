@@ -1,5 +1,11 @@
 <template>
-  <div class="chessboard" ref="board" @mousedown="startDrag" @mouseup="endDrag">
+  <div
+    class="chessboard"
+    ref="board"
+    @mousedown="startDrag"
+    @mouseup="endDrag"
+    @mousemove="handleMouseMove"
+  >
     <div class="chessboard-hidden" ref="hiddenBoard">
       <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
       <div
@@ -72,6 +78,44 @@
         />
       </div>
     </div>
+
+    <!-- Arrow -->
+    <svg class="draw-arrows">
+      <g
+        v-for="(arrow, index) in arrows"
+        :key="index"
+        stroke-width="5"
+        stroke="rgb(67, 101, 224)"
+        fill="none"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.9"
+      >
+        <line
+          :x1="arrow.start.x"
+          :y1="arrow.start.y"
+          :x2="arrow.end.x"
+          :y2="arrow.end.y"
+          marker-end="url(#arrowhead)"
+          filter="url(#drop-shadow)"
+        />
+      </g>
+      <defs>
+        <marker
+          id="arrowhead"
+          viewBox="0 0 5 5"
+          refX="2.5"
+          refY="2.5"
+          markerWidth="5"
+          markerHeight="5"
+          orient="auto"
+          overflow="visible"
+        >
+          <polygon points="0,5 1.6666666666666667,2.5 0,0 5,2.5" fill="rgb(67, 101, 224)"></polygon>
+        </marker>
+      </defs>
+    </svg>
+
     <!-- Promotion Modal -->
     <div v-if="showPromotionModal" class="promotion-modal">
       <div class="promotion-options">
@@ -128,6 +172,11 @@ const currentBoardSquares = computed(() =>
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
 
+const arrows = ref([])
+const currentArrow = ref(null)
+const isDragging = ref(false)
+const dragStartCell = ref(null)
+
 const showPromotionModal = ref(false)
 const promotionPieces = ref({
   q: 'Queen',
@@ -156,6 +205,36 @@ const handleDragStart = (square) => {
   }
 }
 
+const startDrag = (event) => {
+  const targetCell = getSquareInfoFromMouseEvent(event)
+  if (targetCell) {
+    dragStartCell.value = targetCell
+    isDragging.value = true
+    currentArrow.value = {
+      start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
+      end: null,
+    }
+  }
+}
+
+const endDrag = () => {
+  if (currentArrow.value && currentArrow.value.end) {
+    arrows.value.push(currentArrow.value)
+  }
+  currentArrow.value = null
+  isDragging.value = false
+  dragStartCell.value = null
+}
+
+const handleMouseMove = (event) => {
+  if (isDragging.value && dragStartCell.value) {
+    const targetCell = getSquareInfoFromMouseEvent(event)
+    if (targetCell) {
+      currentArrow.value.end = getSquareCenter(targetCell.row, targetCell.column)
+    }
+  }
+}
+
 const handleDragOver = (event) => {
   event.preventDefault() // Allow the drop
 }
@@ -177,6 +256,16 @@ const handleCellClick = (square, event) => {
   else if (event.ctrlKey) toggleHighlight(colors.ctrl)
   else if (event.shiftKey) toggleHighlight(colors.shift)
   else if (event.altKey) toggleHighlight(colors.alt)
+}
+
+// Function to get the center coordinates of a square on the chessboard
+const getSquareCenter = (row, column) => {
+  const boardElement = document.querySelector('.chessboard-hidden')
+  const rect = boardElement.getBoundingClientRect()
+  const squareSize = rect.width / 8
+  const x = rect.left + column * squareSize + squareSize / 2
+  const y = rect.top + row * squareSize + squareSize / 2
+  return { x, y }
 }
 
 const movePiece = (fromSquare, toSquare) => {
@@ -260,7 +349,7 @@ const getAttackersAndDefenders = (square) => {
 }
 
 const highlightAttackerSquares = (event) => {
-  const squareName = getSquareNameFromMouseEvent(event)
+  const squareName = getSquareInfoFromMouseEvent(event).name
 
   if (legalMovesForDraggingPiece.value.includes(squareName)) {
     const { attackers } = getAttackersAndDefenders(squareName)
@@ -275,7 +364,7 @@ const highlightAttackerSquares = (event) => {
   }
 }
 
-const getSquareNameFromMouseEvent = (event) => {
+const getSquareInfoFromMouseEvent = (event) => {
   const boardElement = document.querySelector('.chessboard-hidden')
   const rect = boardElement.getBoundingClientRect()
   const squareSize = rect.width / 8
@@ -285,7 +374,7 @@ const getSquareNameFromMouseEvent = (event) => {
   const row = isFlipped.value
     ? 7 - Math.floor((event.clientY - rect.top) / squareSize)
     : Math.floor((event.clientY - rect.top) / squareSize)
-  return chessBoardSquares[row * 8 + column]
+  return { row, column, name: chessBoardSquares[row * 8 + column] }
 }
 
 // Function to get locations of given piece by name and color
@@ -392,6 +481,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   background-size: cover;
   background-repeat: no-repeat;
   position: relative;
+  user-select: none;
 }
 
 .chessboard-hidden {
@@ -438,6 +528,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
 }
 
 .square-coordinates {
