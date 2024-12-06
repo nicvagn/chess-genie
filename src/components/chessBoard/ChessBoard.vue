@@ -5,6 +5,7 @@
     @mousedown="startDrag"
     @mouseup="endDrag"
     @mousemove="handleMouseMove"
+    :style="{ 'background-image': `url('../../public/chessboard/${selectedChessBoardImage}')` }"
   >
     <div class="chessboard-hidden" ref="hiddenBoard">
       <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
@@ -150,6 +151,11 @@
         {{ value }}
       </option>
     </select>
+    <select v-model="selectedChessBoardImage">
+      <option v-for="[key, value] in Object.entries(chessBoardImage)" :key="key" :value="value">
+        {{ key }}
+      </option>
+    </select>
   </div>
   <div class="move-history">
     <div v-for="(move, index) in moveHistory" :key="index">
@@ -179,6 +185,9 @@ const currentBoardSquares = computed(() =>
 
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
+
+const chessBoardImage = { wood: 'wood.jpg', wood4: 'wood4.jpg' }
+const selectedChessBoardImage = ref('wood.jpg')
 
 const arrows = ref([])
 const currentArrow = ref(null)
@@ -492,7 +501,6 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
 .chessboard {
   width: 500px;
   height: 500px;
-  background-image: url('../../public/chessboard/wood4.jpg');
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
