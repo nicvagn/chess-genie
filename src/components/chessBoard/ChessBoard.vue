@@ -73,7 +73,7 @@
           :class="{
             selected: selectedCell === square,
           }"
-          @dragstart="handleDragStart(square)"
+          @dragstart="startDrag"
           :draggable="boardState[square] !== null"
           @drag="highlightAttackerSquares"
         />
@@ -211,33 +211,33 @@ const colors = {
   altShift: 'yellow',
 }
 
-const handleDragStart = (square) => {
-  if (boardState.value[square]) {
-    selectedCell.value = square
-    legalMovesForDraggingPiece.value = chess.value
-      .moves({ square: square, verbose: true })
-      .map((move) => move.to)
-    legalMovesForDraggingPiece.value.forEach((move) => {
-      highlightedSquares.value[move] = { color: 'green', type: 'move' }
-    })
-  }
-}
-
 const startDrag = (event) => {
   const targetCell = getSquareInfoFromMouseEvent(event)
   if (targetCell) {
-    dragStartCell.value = targetCell
     isDragging.value = true
+    dragStartCell.value = targetCell
+    selectedCell.value = targetCell.name
+    if (event.button === 0) {
+      // Left button for selecting pieces
+      legalMovesForDraggingPiece.value = chess.value
+        .moves({ square: targetCell.name, verbose: true })
+        .map((move) => move.to)
 
-    if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
-    else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
-    else if (event.shiftKey) currentArrowColor.value = colors.shift
-    else if (event.altKey) currentArrowColor.value = colors.alt
+      legalMovesForDraggingPiece.value.forEach((move) => {
+        highlightedSquares.value[move] = { color: 'green', type: 'move' }
+      })
+    } else if (event.button === 2) {
+      if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
+      else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
+      else if (event.shiftKey) currentArrowColor.value = colors.shift
+      else if (event.altKey) currentArrowColor.value = colors.alt
+      else currentArrowColor.value = null
 
-    currentArrow.value = {
-      start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
-      end: null,
-      color: currentArrowColor.value,
+      currentArrow.value = {
+        start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
+        end: null,
+        color: currentArrowColor.value,
+      }
     }
   }
 }
@@ -325,6 +325,9 @@ const movePiece = (fromSquare, toSquare) => {
       from: validMove.from,
       to: validMove.to,
     })
+
+    // Save current state of the game to localStorage
+    saveGameState()
   }
   // Deselect after move
   highlightedSquares.value = {}
@@ -356,6 +359,9 @@ const promotePawn = (symbol) => {
       from: promotionMove.from,
       to: promotionMove.to,
     })
+
+    // Save current state of the game to localStorage
+    saveGameState()
   }
 
   showPromotionModal.value = false
@@ -482,6 +488,14 @@ const flipBoard = () => {
   isFlipped.value = !isFlipped.value
 }
 
+const saveGameState = () => {
+  // Save the current position (FEN string)
+  localStorage.setItem('chessGamePosition', chess.value.fen())
+
+  // Save the move history
+  localStorage.setItem('moveHistory', JSON.stringify(moveHistory.value))
+}
+
 // On component mounted, check local storage
 onMounted(() => {
   const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
@@ -489,6 +503,17 @@ onMounted(() => {
 
   const storedChessBoardImage = localStorage.getItem('selectedChessBoardImage')
   if (storedChessBoardImage) selectedChessBoardImage.value = storedChessBoardImage
+
+  const savedPosition = localStorage.getItem('chessGamePosition')
+  if (savedPosition) {
+    chess.value.load(savedPosition)
+    setPositionFromFEN(savedPosition)
+  }
+
+  const savedMoveHistory = localStorage.getItem('moveHistory')
+  if (savedMoveHistory) {
+    moveHistory.value = JSON.parse(savedMoveHistory) // Restore the move history
+  }
 })
 
 // Watch for changes and save to local storage
@@ -500,7 +525,7 @@ watch(selectedChessBoardImage, (newChessBoardImage) => {
   localStorage.setItem('selectedChessBoardImage', newChessBoardImage)
 })
 
-// Example FEN position
+// Initial Board Position
 setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5')
 </script>
 
