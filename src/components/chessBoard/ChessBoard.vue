@@ -482,15 +482,22 @@ const flipBoard = () => {
   isFlipped.value = !isFlipped.value
 }
 
-// On component mounted, check local storage for piece set
+// On component mounted, check local storage
 onMounted(() => {
   const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
   if (storedPieceSet) selectedChessPieceSet.value = storedPieceSet
+
+  const storedChessBoardImage = localStorage.getItem('selectedChessBoardImage')
+  if (storedChessBoardImage) selectedChessBoardImage.value = storedChessBoardImage
 })
 
-// Watch for changes to selectedChessPieceSet and save to local storage
+// Watch for changes and save to local storage
 watch(selectedChessPieceSet, (newPieceSet) => {
   localStorage.setItem('selectedChessPieceSet', newPieceSet)
+})
+
+watch(selectedChessBoardImage, (newChessBoardImage) => {
+  localStorage.setItem('selectedChessBoardImage', newChessBoardImage)
 })
 
 // Example FEN position
