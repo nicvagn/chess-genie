@@ -186,8 +186,21 @@ const currentBoardSquares = computed(() =>
 const chessPieceSet = { cardinal: 'Cardinal', staunty: 'Staunty', merida: 'Merida' }
 const selectedChessPieceSet = ref('Cardinal')
 
-const chessBoardImage = { wood: 'wood.jpg', wood4: 'wood4.jpg' }
-const selectedChessBoardImage = ref('wood.jpg')
+const chessBoardImage = {
+  blue: 'blue.png',
+  blue2: 'blue2.jpg',
+  brown: 'brown.png',
+  greenPlastic: 'green-plastic.png',
+  green: 'green.png',
+  grey: 'grey.jpg',
+  ic: 'ic.png',
+  marble: 'marble.jpg',
+  olive: 'olive.jpg',
+  wood: 'wood.jpg',
+  wood2: 'wood2.jpg',
+  wood4: 'wood4.jpg',
+}
+const selectedChessBoardImage = ref('blue2.jpg')
 
 const arrows = ref([])
 const currentArrow = ref(null)
@@ -592,7 +605,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   top: 0.5px;
   right: 0.5px;
   font-size: 14px;
-  font-weight: bold;
+  font-weight: lighter;
   pointer-events: none;
   user-select: none;
 }
