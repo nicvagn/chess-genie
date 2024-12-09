@@ -60,7 +60,7 @@
 
         <!-- Highlighted move (small circle) -->
         <div
-          v-if="highlightedSquares[square] && highlightedSquares[square].type === 'move'"
+          v-if="legalMovesHighlight[square] && legalMovesHighlight[square].type === 'legalMoves'"
           class="highlight-circle"
         ></div>
 
@@ -126,7 +126,7 @@
     </svg>
 
     <!-- Promotion Modal -->
-    <div v-if="showPromotionModal" class="promotion-modal">
+    <div v-if="showPromotionModal" class="promotion-modal" @mousedown.stop>
       <div class="promotion-options">
         <div
           v-for="(piece, symbol) in promotionPieces"
@@ -174,6 +174,7 @@ const highlightedSquares = ref({})
 const isFlipped = ref(false)
 const selectedCell = ref(null)
 const legalMovesForDraggingPiece = ref([])
+const legalMovesHighlight = ref({})
 
 const moveHistory = ref([])
 const lastMoveSquares = ref({ from: null, to: null })
@@ -237,7 +238,7 @@ const startDrag = (event) => {
         .map((move) => move.to)
 
       legalMovesForDraggingPiece.value.forEach((move) => {
-        highlightedSquares.value[move] = { color: 'green', type: 'move' }
+        legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
     } else if (event.button === 2) {
       if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
@@ -267,7 +268,7 @@ const endDrag = () => {
 const handleMouseMove = (event) => {
   if (isDragging.value && dragStartCell.value) {
     const targetCell = getSquareInfoFromMouseEvent(event)
-    if (targetCell) {
+    if (targetCell && currentArrow.value) {
       currentArrow.value.end = getSquareCenter(targetCell.row, targetCell.column)
     }
   }
@@ -344,6 +345,7 @@ const movePiece = (fromSquare, toSquare) => {
   }
   // Deselect after move
   highlightedSquares.value = {}
+  legalMovesHighlight.value = {}
   selectedCell.value = null
 }
 
@@ -380,6 +382,7 @@ const promotePawn = (symbol) => {
   showPromotionModal.value = false
   promotionSquare.value = null
   highlightedSquares.value = {}
+  legalMovesHighlight.value = {}
   selectedCell.value = null
 }
 
