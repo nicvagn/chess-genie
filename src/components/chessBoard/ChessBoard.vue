@@ -1,165 +1,180 @@
 <template>
-  <div
-    class="chessboard"
-    ref="board"
-    @mousedown="startDrag"
-    @mouseup="endDrag"
-    @mousemove="handleMouseMove"
-    :style="{ 'background-image': `url('../../public/chessboard/${selectedChessBoardImage}')` }"
-  >
-    <div class="chessboard-hidden" ref="hiddenBoard">
-      <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
+  <div class="chess-container">
+    <div class="chessboard-wrapper">
       <div
-        v-for="(square, index) in currentBoardSquares"
-        :key="square"
-        class="chess-cell"
-        :class="{
-          'king-check': getKingInCheck(square),
-          'last-move': lastMoveSquares.from === square || lastMoveSquares.to === square,
-        }"
-        @dragover="handleDragOver"
-        @drop="handleDrop(square)"
-        @click="handleCellClick(square, $event)"
+        class="chessboard"
+        ref="board"
+        @mousedown="startDrag"
+        @mouseup="endDrag"
+        @mousemove="handleMouseMove"
+        :style="{ 'background-image': `url('../../public/chessboard/${selectedChessBoardImage}')` }"
       >
-        <span
-          class="square-coordinates"
-          :style="{ color: Math.floor(index / 8) % 2 !== index % 2 ? 'white' : 'black' }"
-          >{{ square }}</span
-        >
+        <div class="chessboard-hidden" ref="hiddenBoard">
+          <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
+          <div
+            v-for="(square, index) in currentBoardSquares"
+            :key="square"
+            class="chess-cell"
+            :class="{
+              'king-check': getKingInCheck(square),
+              'last-move': lastMoveSquares.from === square || lastMoveSquares.to === square,
+            }"
+            @dragover="handleDragOver"
+            @drop="handleDrop(square)"
+            @click="handleCellClick(square, $event)"
+          >
+            <span
+              class="square-coordinates"
+              :style="{ color: Math.floor(index / 8) % 2 !== index % 2 ? 'white' : 'black' }"
+              >{{ square }}</span
+            >
 
-        <!-- Highlighted Square -->
-        <svg
-          v-if="highlightedSquares[square] && highlightedSquares[square].type !== 'move'"
-          class="highlight-square"
-        >
-          <defs>
-            <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-              <feOffset dx="0" dy="0" result="offsetblur" />
-              <feFlood flood-color="rgba(0, 0, 0, 0.2)" />
-              <feComposite in2="offsetblur" operator="in" />
-              <feMerge>
-                <feMergeNode />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-          <rect
-            width="90%"
-            height="90%"
-            x="3"
-            y="3"
-            rx="10"
-            ry="10"
+            <!-- Highlighted Square -->
+            <svg
+              v-if="highlightedSquares[square] && highlightedSquares[square].type !== 'move'"
+              class="highlight-square"
+            >
+              <defs>
+                <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                  <feOffset dx="0" dy="0" result="offsetblur" />
+                  <feFlood flood-color="rgba(0, 0, 0, 0.2)" />
+                  <feComposite in2="offsetblur" operator="in" />
+                  <feMerge>
+                    <feMergeNode />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              <rect
+                width="90%"
+                height="90%"
+                x="3"
+                y="3"
+                rx="10"
+                ry="10"
+                fill="none"
+                :stroke="highlightedSquares[square].color"
+                stroke-width="2.5"
+                filter="url(#drop-shadow)"
+              />
+            </svg>
+
+            <!-- Highlighted move (small circle) -->
+            <div
+              v-if="
+                legalMovesHighlight[square] && legalMovesHighlight[square].type === 'legalMoves'
+              "
+              class="highlight-circle"
+            ></div>
+
+            <!-- Chess piece image -->
+            <img
+              v-if="boardState[square]"
+              :src="`../../public/pieces/${selectedChessPieceSet}/${boardState[square]}.svg`"
+              :alt="boardState[square]"
+              class="chess-piece"
+              :class="{
+                selected: selectedCell === square,
+              }"
+              @dragstart="startDrag"
+              :draggable="boardState[square] !== null"
+              @drag="highlightAttackerSquares"
+            />
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <svg class="draw-arrows">
+          <g
+            v-for="(arrow, index) in arrows"
+            :key="index"
+            stroke-width="5"
+            :stroke="arrow.color"
             fill="none"
-            :stroke="highlightedSquares[square].color"
-            stroke-width="2.5"
-            filter="url(#drop-shadow)"
-          />
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            opacity="0.7"
+          >
+            <line
+              :x1="arrow.start.x"
+              :y1="arrow.start.y"
+              :x2="arrow.end.x"
+              :y2="arrow.end.y"
+              :marker-end="`url(#arrowhead-${index})`"
+              filter="url(#drop-shadow)"
+            />
+            <defs>
+              <marker
+                :id="`arrowhead-${index}`"
+                viewBox="0 0 6 6"
+                refX="3"
+                refY="3"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+                overflow="visible"
+              >
+                <polyline
+                  points="0,3 3,1.5 0,0"
+                  fill="none"
+                  stroke-width="1"
+                  :stroke="arrow.color"
+                  stroke-linecap="round"
+                  transform="matrix(1,0,0,1,1,1.5)"
+                  stroke-linejoin="round"
+                ></polyline>
+              </marker>
+            </defs>
+          </g>
         </svg>
 
-        <!-- Highlighted move (small circle) -->
-        <div
-          v-if="legalMovesHighlight[square] && legalMovesHighlight[square].type === 'legalMoves'"
-          class="highlight-circle"
-        ></div>
-
-        <!-- Chess piece image -->
-        <img
-          v-if="boardState[square]"
-          :src="`../../public/pieces/${selectedChessPieceSet}/${boardState[square]}.svg`"
-          :alt="boardState[square]"
-          class="chess-piece"
-          :class="{
-            selected: selectedCell === square,
-          }"
-          @dragstart="startDrag"
-          :draggable="boardState[square] !== null"
-          @drag="highlightAttackerSquares"
-        />
-      </div>
-    </div>
-
-    <!-- Arrow -->
-    <svg class="draw-arrows">
-      <g
-        v-for="(arrow, index) in arrows"
-        :key="index"
-        stroke-width="5"
-        :stroke="arrow.color"
-        fill="none"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        opacity="0.7"
-      >
-        <line
-          :x1="arrow.start.x"
-          :y1="arrow.start.y"
-          :x2="arrow.end.x"
-          :y2="arrow.end.y"
-          :marker-end="`url(#arrowhead-${index})`"
-          filter="url(#drop-shadow)"
-        />
-        <defs>
-          <marker
-            :id="`arrowhead-${index}`"
-            viewBox="0 0 6 6"
-            refX="3"
-            refY="3"
-            markerWidth="6"
-            markerHeight="6"
-            orient="auto-start-reverse"
-            overflow="visible"
-          >
-            <polyline
-              points="0,3 3,1.5 0,0"
-              fill="none"
-              stroke-width="1"
-              :stroke="arrow.color"
-              stroke-linecap="round"
-              transform="matrix(1,0,0,1,1,1.5)"
-              stroke-linejoin="round"
-            ></polyline>
-          </marker>
-        </defs>
-      </g>
-    </svg>
-
-    <!-- Promotion Modal -->
-    <div v-if="showPromotionModal" class="promotion-modal" @mousedown.stop>
-      <div class="promotion-options">
-        <div
-          v-for="(piece, symbol) in promotionPieces"
-          :key="symbol"
-          class="promotion-option"
-          @click="promotePawn(symbol)"
-        >
-          <img
-            :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
-            :alt="symbol"
-            class="promotion-image"
-          />
+        <!-- Promotion Modal -->
+        <div v-if="showPromotionModal" class="promotion-modal" @mousedown.stop>
+          <div class="promotion-options">
+            <div
+              v-for="(piece, symbol) in promotionPieces"
+              :key="symbol"
+              class="promotion-option"
+              @click="promotePawn(symbol)"
+            >
+              <img
+                :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
+                :alt="symbol"
+                class="promotion-image"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div>
-    <button @click="flipBoard">Flip Board</button>
-    <select v-model="selectedChessPieceSet">
-      <option v-for="[key, value] in Object.entries(chessPieceSet)" :key="key" :value="value">
-        {{ value }}
-      </option>
-    </select>
-    <select v-model="selectedChessBoardImage">
-      <option v-for="[key, value] in Object.entries(chessBoardImage)" :key="key" :value="value">
-        {{ key }}
-      </option>
-    </select>
-  </div>
-  <div class="move-history">
-    <div v-for="(move, index) in moveHistory" :key="index">
-      <p class="move-button" @click="navigateToMove(index)">{{ move.san }}</p>
+    <div class="ml-3 mt-3">
+      <button
+        class="inline-block rounded border border-indigo-600 px-2 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring"
+        @click="flipBoard"
+      >
+        Flip Board
+      </button>
+      <select
+        class="text-indigo-600 border border-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring font-medium rounded text-sm px-2 py-2 text-center inline-flex items-center"
+        v-model="selectedChessPieceSet"
+      >
+        <option v-for="[key, value] in Object.entries(chessPieceSet)" :key="key" :value="value">
+          {{ value }}
+        </option>
+      </select>
+      <select
+        class="text-indigo-600 border border-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring font-medium rounded text-sm px-2 py-2 text-center inline-flex items-center"
+        v-model="selectedChessBoardImage"
+      >
+        <option v-for="[key, value] in Object.entries(chessBoardImage)" :key="key" :value="value">
+          {{ key }}
+        </option>
+      </select>
+    </div>
+    <div class="ml-3">
+      <MoveHistory :moves="moveHistory" :onNavigate="navigateToMove" />
     </div>
   </div>
 </template>
@@ -167,6 +182,7 @@
 <script setup>
 import { Chess, SQUARES } from 'chess.js'
 import { computed, onMounted, ref, watch } from 'vue'
+import MoveHistory from './MoveHistory.vue'
 
 const chess = ref(new Chess())
 const boardState = ref({}) // Use an object to map square to pieces.
@@ -396,10 +412,10 @@ const getAttackersAndDefenders = (square) => {
 }
 
 const highlightAttackerSquares = (event) => {
-  const squareName = getSquareInfoFromMouseEvent(event).name
+  const squareInfo = getSquareInfoFromMouseEvent(event)
 
-  if (legalMovesForDraggingPiece.value.includes(squareName)) {
-    const { attackers } = getAttackersAndDefenders(squareName)
+  if (legalMovesForDraggingPiece.value.includes(squareInfo.name)) {
+    const { attackers } = getAttackersAndDefenders(squareInfo.name)
 
     Object.keys(highlightedSquares.value)
       .filter((square) => highlightedSquares.value[square]?.type === 'attack')
@@ -546,6 +562,16 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
 </script>
 
 <style scoped>
+.chess-container {
+  display: flex;
+}
+
+.chessboard-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .chessboard {
   width: 500px;
   height: 500px;
@@ -637,20 +663,6 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-}
-
-.move-history {
-  margin-top: 20px;
-  display: inline-flex;
-}
-
-.move-history .move-button {
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-decoration: underline;
-  color: blue;
-  margin: 0 5px 0 0;
 }
 
 .promotion-modal {
