@@ -17,7 +17,7 @@
             class="chess-cell"
             :class="{
               'king-check': getKingInCheck(square),
-              'last-move': lastMoveSquares.from === square || lastMoveSquares.to === square,
+              'last-move': lastMoveInfo.from === square || lastMoveInfo.to === square,
             }"
             @dragover="handleDragOver"
             @drop="handleDrop(square)"
@@ -193,7 +193,7 @@ const legalMovesForDraggingPiece = ref([])
 const legalMovesHighlight = ref({})
 
 const moveHistory = ref([])
-const lastMoveSquares = ref({ from: null, to: null })
+const lastMoveInfo = ref({ from: null, to: null, piece: null })
 
 const chessBoardSquares = SQUARES
 const currentBoardSquares = computed(() =>
@@ -301,6 +301,9 @@ const handleDrop = (toSquare) => {
 }
 
 const handleCellClick = (square, event) => {
+  if (selectedCell.value === square) {
+    legalMovesHighlight.value = {}
+  }
   const existingHighlight = highlightedSquares.value[square]
 
   const toggleHighlight = (color) => {
@@ -328,6 +331,8 @@ const movePiece = (fromSquare, toSquare) => {
     .moves({ square: fromSquare, verbose: true })
     .find((move) => move.to === toSquare)
 
+  console.log(validMove)
+
   if (validMove) {
     handleCastling(validMove)
     handleEnPassant(validMove, toSquare)
@@ -344,7 +349,11 @@ const movePiece = (fromSquare, toSquare) => {
     boardState.value[toSquare] = boardState.value[fromSquare]
     boardState.value[fromSquare] = null
 
-    lastMoveSquares.value = { from: fromSquare, to: toSquare }
+    lastMoveInfo.value = {
+      from: fromSquare,
+      to: toSquare,
+      piece: boardState.value[toSquare],
+    }
 
     // Add move to history
     moveHistory.value.push({
@@ -379,7 +388,11 @@ const promotePawn = (symbol) => {
     boardState.value[promotionSquare.value] = `${color}${symbol.toUpperCase()}`
     boardState.value[selectedCell.value] = null
 
-    lastMoveSquares.value = { from: selectedCell.value, to: promotionSquare.value }
+    lastMoveInfo.value = {
+      from: selectedCell.value,
+      to: promotionSquare.value,
+      piece: boardState.value[promotionMove.to],
+    }
 
     // Add move to history
     moveHistory.value.push({
@@ -497,7 +510,11 @@ const navigateToMove = (index) => {
   // Get the FEN from moveHistory at the specified index
   const selectedMove = moveHistory.value[index]
   if (selectedMove) {
-    lastMoveSquares.value = { from: selectedMove.from, to: selectedMove.to }
+    lastMoveInfo.value = {
+      from: selectedMove.from,
+      to: selectedMove.to,
+      piece: boardState.value[selectedMove.to],
+    }
     setPositionFromFEN(selectedMove.after)
   }
 }
