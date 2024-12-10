@@ -326,12 +326,16 @@ const getSquareCenter = (row, column) => {
   return { x, y }
 }
 
+const deselectSquare = () => {
+  highlightedSquares.value = {}
+  legalMovesHighlight.value = {}
+  selectedCell.value = null
+}
+
 const movePiece = (fromSquare, toSquare) => {
   const validMove = chess.value
     .moves({ square: fromSquare, verbose: true })
     .find((move) => move.to === toSquare)
-
-  console.log(validMove)
 
   if (validMove) {
     handleCastling(validMove)
@@ -367,11 +371,13 @@ const movePiece = (fromSquare, toSquare) => {
 
     // Save current state of the game to localStorage
     saveGameState()
+
+    // Deselect after move
+    deselectSquare()
+  } else {
+    // Deselect if it's wrong move
+    deselectSquare()
   }
-  // Deselect after move
-  highlightedSquares.value = {}
-  legalMovesHighlight.value = {}
-  selectedCell.value = null
 }
 
 const promotePawn = (symbol) => {
@@ -410,9 +416,7 @@ const promotePawn = (symbol) => {
 
   showPromotionModal.value = false
   promotionSquare.value = null
-  highlightedSquares.value = {}
-  legalMovesHighlight.value = {}
-  selectedCell.value = null
+  deselectSquare()
 }
 
 const getAttackersAndDefenders = (square) => {
