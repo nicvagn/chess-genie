@@ -34,6 +34,11 @@ const initBoard = () => {
   if (board.value) {
     board.value.set({
       orientation: orientation,
+      highlight: {
+        lastMove: true,
+        check: true,
+      },
+      turnColor: chess.turn() === 'w' ? 'white' : 'black',
     })
     return
   }
@@ -46,6 +51,7 @@ const initBoard = () => {
     coordinates: true,
     coordinatesOnSquares: true,
     orientation: orientation,
+    turnColor: chess.turn() === 'w' ? 'white' : 'black',
     movable: {
       free: false,
       showDests: true,
@@ -82,10 +88,23 @@ const handleMove = (from, to) => {
   }
   chess.move(move)
 
-  if (chess.isCheck()) {
-    const kingPOS = getPieceLocations('k', chess.turn())
-    console.log(kingPOS)
-  }
+  const kingCheck = chess.isCheck()
+  const kingPOS = kingCheck ? getPieceLocations('k', chess.turn()) : []
+
+  console.log(kingPOS)
+
+  board.value.set({
+    fen: chess.fen(),
+    movable: {
+      dests: getDests(),
+      color: chess.turn() === 'w' ? 'white' : 'black',
+    },
+    highlight: {
+      lastMove: true,
+      check: kingCheck,
+    },
+    turnColor: chess.turn() === 'w' ? 'white' : 'black',
+  })
 
   // Update board config after the move
   board.value.set({
@@ -93,6 +112,10 @@ const handleMove = (from, to) => {
     movable: {
       dests: getDests(),
       color: chess.turn() === 'w' ? 'white' : 'black',
+    },
+    highlight: {
+      lastMove: true,
+      check: true,
     },
   })
   return true

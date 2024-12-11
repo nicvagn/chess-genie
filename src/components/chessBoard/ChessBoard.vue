@@ -60,7 +60,7 @@
               />
             </svg>
 
-            <!-- Highlighted move (small circle) -->
+            <!-- Highlight legal moves (small circle) -->
             <div
               v-if="
                 legalMovesHighlight[square] && legalMovesHighlight[square].type === 'legalMoves'
@@ -130,21 +130,20 @@
         </svg>
 
         <!-- Promotion Modal -->
-        <div v-if="showPromotionModal" class="promotion-modal" @mousedown.stop>
-          <div class="promotion-options">
-            <div
-              v-for="(piece, symbol) in promotionPieces"
-              :key="symbol"
-              class="promotion-option"
-              @click="promotePawn(symbol)"
-            >
-              <img
-                :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
-                :alt="symbol"
-                class="promotion-image"
-              />
-            </div>
-          </div>
+        <div
+          v-if="showPromotionModal"
+          class="promotion-modal"
+          @mousedown.stop
+          :style="promotionModalPosition"
+        >
+          <img
+            v-for="(piece, symbol) in promotionPieces"
+            :key="symbol"
+            :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
+            :alt="symbol"
+            class="promotion-image"
+            @click="promotePawn(symbol)"
+          />
         </div>
       </div>
     </div>
@@ -172,6 +171,12 @@
           {{ key }}
         </option>
       </select>
+      <button
+        class="inline-block rounded border border-red-600 px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-600 hover:text-white focus:outline-none focus:ring"
+        @click="resetLocalStorage"
+      >
+        Reset Game
+      </button>
     </div>
     <div class="ml-3">
       <MoveHistory :moves="moveHistory" :onNavigate="navigateToMove" />
@@ -541,6 +546,51 @@ const flipBoard = () => {
   isFlipped.value = !isFlipped.value
 }
 
+const resetLocalStorage = () => {
+  localStorage.removeItem('chessGamePosition')
+  localStorage.removeItem('moveHistory')
+  localStorage.removeItem('selectedChessPieceSet')
+  localStorage.removeItem('selectedChessBoardImage')
+
+  // Optionally reset the board and other states
+  chess.value.reset() // Reset the chess game state
+  moveHistory.value = [] // Clear move history
+  setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5') // Reset to initial position
+
+  // Reset UI states if needed
+  selectedCell.value = null
+  highlightedSquares.value = {}
+  legalMovesHighlight.value = {}
+  lastMoveInfo.value = {}
+  arrows.value = []
+}
+
+const promotionModalPosition = computed(() => {
+  if (promotionSquare.value) {
+    const { row, column } = getSquareInfo(promotionSquare.value)
+    const { x, y } = getSquareCenter(row, column)
+
+    // Get chessboard dimensions
+    const boardElement = document.querySelector('.chessboard')
+    const boardRect = boardElement.getBoundingClientRect()
+    const squareSize = boardRect.width / 8
+    console.log(squareSize)
+
+    const top = `${y}px`
+    const left = `${x}px`
+
+    return { top, left }
+  }
+  return { top: '0px', left: '0px' }
+})
+
+const getSquareInfo = (square) => {
+  const row = isFlipped.value ? parseInt(square[1]) - 1 : 8 - parseInt(square[1])
+  const column = square.charCodeAt(0) - 'a'.charCodeAt(0)
+
+  return { row, column }
+}
+
 const saveGameState = () => {
   // Save the current position (FEN string)
   localStorage.setItem('chessGamePosition', chess.value.fen())
@@ -635,6 +685,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   position: absolute;
   width: 100%;
   height: 100%;
+  z-index: 5;
 }
 
 .selected {
@@ -648,6 +699,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 10;
 }
 
 .square-coordinates {
@@ -688,32 +740,18 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
 
 .promotion-modal {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   background-color: white;
-  border: 2px solid #000;
-  padding: 1em;
-  z-index: 1000;
-}
-
-.promotion-options {
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  margin: 10px 0;
-  cursor: pointer;
+  border: 1px solid black;
+  z-index: 10;
+  padding: 0.4em;
 }
 
 .promotion-image {
   width: 50px;
   height: auto;
-  margin: 0 5px;
-  border: 2px solid transparent;
-  transition: border 0.3s;
 }
 
 .promotion-image:hover {
-  border-color: blue;
+  background-color: rgba(20, 85, 30, 0.5);
 }
 </style>
