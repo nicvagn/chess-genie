@@ -30,14 +30,11 @@ let selectedSquare = ref(null)
 const initBoard = () => {
   const orientation = isFlipped.value ? 'black' : 'white'
 
-  // If the board is already created, just update the orientation
+  // If the board is already created, just change the orientation
+  // to update the flipped board
   if (board.value) {
     board.value.set({
       orientation: orientation,
-      highlight: {
-        lastMove: true,
-        check: true,
-      },
       turnColor: chess.turn() === 'w' ? 'white' : 'black',
     })
     return
@@ -83,28 +80,19 @@ const handleMove = (from, to) => {
   const legalMoves = chess.moves({ verbose: true })
   const move = legalMoves.find((move) => move.from === from && move.to === to)
 
-  if (move === null || move === undefined) {
-    return false
-  }
+  if (move === null || move === undefined) return false
+
   chess.move(move)
 
-  const kingCheck = chess.isCheck()
-  const kingPOS = kingCheck ? getPieceLocations('k', chess.turn()) : []
-
-  console.log(kingPOS)
-
-  board.value.set({
-    fen: chess.fen(),
-    movable: {
-      dests: getDests(),
-      color: chess.turn() === 'w' ? 'white' : 'black',
-    },
-    highlight: {
-      lastMove: true,
-      check: kingCheck,
-    },
-    turnColor: chess.turn() === 'w' ? 'white' : 'black',
-  })
+  if (chess.isCheck()) {
+    // key is a square name. ex: e4, d4...
+    // piece role = piece name. ex. king, rook, etc. & color = black or white
+    for (const [key, piece] of board.value.state.pieces) {
+      if (piece.role === 'king' && piece.color === board.value.state.turnColor) {
+        board.value.state.check = key
+      }
+    }
+  }
 
   // Update board config after the move
   board.value.set({
@@ -113,10 +101,7 @@ const handleMove = (from, to) => {
       dests: getDests(),
       color: chess.turn() === 'w' ? 'white' : 'black',
     },
-    highlight: {
-      lastMove: true,
-      check: true,
-    },
+    turnColor: chess.turn() === 'w' ? 'white' : 'black',
   })
   return true
 }
@@ -148,14 +133,6 @@ const handleSelect = (square) => {
   } else {
     return null
   }
-}
-
-// Function to get locations of given piece by name and color
-const getPieceLocations = (pieceName, pieceColor) => {
-  return SQUARES.filter((square) => {
-    const piece = chess.get(square)
-    return piece && piece.color === pieceColor && piece.type === pieceName
-  })
 }
 
 // Flip the board orientation
