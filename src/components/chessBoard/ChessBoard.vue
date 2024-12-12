@@ -130,20 +130,41 @@
         </svg>
 
         <!-- Promotion Modal -->
-        <div
-          v-if="showPromotionModal"
-          class="promotion-modal"
-          @mousedown.stop
-          :style="promotionModalPosition"
-        >
-          <img
-            v-for="(piece, symbol) in promotionPieces"
-            :key="symbol"
-            :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
-            :alt="symbol"
-            class="promotion-image"
-            @click="promotePawn(symbol)"
-          />
+        <div v-if="showPromotionModal" class="promotion-overlay" @mousedown.stop>
+          <div class="promotion-modal" @mousedown.stop>
+            <img
+              v-for="(piece, symbol) in promotionPieces"
+              :key="symbol"
+              :src="`../../public/pieces/${selectedChessPieceSet}/${chess.turn()}${symbol.toUpperCase()}.svg`"
+              :alt="symbol"
+              class="promotion-image"
+              @click="promotePawn(symbol)"
+            />
+            <button
+              class="relative mb-12 text-gray-600 hover:text-red-600 bg-transparent rounded-full transition duration-150 ease-in-out"
+              @click="
+                () => {
+                  showPromotionModal = false
+                  deselectSquare()
+                }
+              "
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -565,32 +586,6 @@ const resetLocalStorage = () => {
   arrows.value = []
 }
 
-const promotionModalPosition = computed(() => {
-  if (promotionSquare.value) {
-    const { row, column } = getSquareInfo(promotionSquare.value)
-    const { x, y } = getSquareCenter(row, column)
-
-    // Get chessboard dimensions
-    const boardElement = document.querySelector('.chessboard')
-    const boardRect = boardElement.getBoundingClientRect()
-    const squareSize = boardRect.width / 8
-    console.log(squareSize)
-
-    const top = `${y}px`
-    const left = `${x}px`
-
-    return { top, left }
-  }
-  return { top: '0px', left: '0px' }
-})
-
-const getSquareInfo = (square) => {
-  const row = isFlipped.value ? parseInt(square[1]) - 1 : 8 - parseInt(square[1])
-  const column = square.charCodeAt(0) - 'a'.charCodeAt(0)
-
-  return { row, column }
-}
-
 const saveGameState = () => {
   // Save the current position (FEN string)
   localStorage.setItem('chessGamePosition', chess.value.fen())
@@ -738,17 +733,35 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   transform: translate(-50%, -50%);
 }
 
-.promotion-modal {
+.promotion-overlay {
+  top: 0;
+  left: 0;
+  z-index: 9;
+  width: 100%;
+  height: 100%;
   position: absolute;
-  background-color: white;
-  border: 1px solid black;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.promotion-modal {
+  top: 50%;
+  left: 50%;
   z-index: 10;
-  padding: 0.4em;
+  display: flex;
+  position: inherit;
+  flex-wrap: nowrap;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
 .promotion-image {
-  width: 50px;
+  width: 80px;
   height: auto;
+  max-width: 100px;
+  position: relative;
 }
 
 .promotion-image:hover {
