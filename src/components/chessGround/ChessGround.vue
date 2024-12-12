@@ -16,9 +16,9 @@
 import { Chess, DEFAULT_POSITION, SQUARES } from 'chess.js'
 import { Chessground } from 'chessground'
 import { onMounted, ref, watch } from 'vue'
-import '../../../node_modules/chessground/assets/chessground.base.css'
-import '../../../node_modules/chessground/assets/chessground.brown.css'
-import '../../../node_modules/chessground/assets/chessground.cburnett.css'
+import '../../../public/assets/chessground.base.css'
+import '../../../public/assets/chessground.brown.css'
+import '../../../public/assets/chessground.cburnett.css'
 
 const chessBoardContainer = ref(null)
 const isFlipped = ref(false)
