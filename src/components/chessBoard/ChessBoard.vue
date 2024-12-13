@@ -129,9 +129,9 @@
           </g>
         </svg>
 
-        <!-- Promotion Modal -->
-        <div v-if="showPromotionModal" class="promotion-overlay" @mousedown.stop>
-          <div class="promotion-modal" @mousedown.stop>
+        <!-- Promotion dialog -->
+        <div v-if="showPromotionDialog" class="dialog-overlay" @mousedown.stop>
+          <div class="dialog-modal" @mousedown.stop>
             <img
               v-for="(piece, symbol) in promotionPieces"
               :key="symbol"
@@ -144,10 +144,36 @@
               class="relative mb-12 text-gray-600 hover:text-red-600 bg-transparent rounded-full transition duration-150 ease-in-out"
               @click="
                 () => {
-                  showPromotionModal = false
+                  showPromotionDialog = !showPromotionDialog
                   deselectSquare()
                 }
               "
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Game result dialog -->
+        <div v-if="showResultDialog" class="dialog-overlay" @mousedown.stop>
+          <div class="dialog-modal" @mousedown.stop>
+            <p class="font-extrabold text-gray-300">{{ resultDialogMessage }}</p>
+            <button
+              class="relative mb-12 text-gray-600 hover:text-red-600 bg-transparent rounded-full transition duration-150 ease-in-out"
+              @click="showResultDialog = !showResultDialog"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -251,7 +277,7 @@ const currentArrowColor = ref(null)
 const isDragging = ref(false)
 const dragStartCell = ref(null)
 
-const showPromotionModal = ref(false)
+const showPromotionDialog = ref(false)
 const promotionPieces = ref({
   q: 'Queen',
   r: 'Rook',
@@ -265,6 +291,29 @@ const colors = {
   shift: 'red',
   alt: 'green',
   altShift: 'yellow',
+}
+
+const showResultDialog = ref(false)
+const resultDialogMessage = ref('')
+
+const checkGameResult = () => {
+  if (chess.value.isGameOver()) {
+    const result = chess.value.isCheckmate()
+      ? `${chess.value.turn() === 'w' ? 'Black' : 'White'} wins by Checkmate!`
+      : chess.value.isStalemate()
+        ? 'Stalemate!'
+        : chess.value.isInsufficientMaterial()
+          ? 'Draw by Insufficient Material!'
+          : chess.value.isThreefoldRepetition()
+            ? 'Draw by 3-fold Repetition!'
+            : ''
+    showGameResultDialog(result)
+  }
+}
+
+const showGameResultDialog = (resultMessage) => {
+  resultDialogMessage.value = resultMessage
+  showResultDialog.value = !showResultDialog.value
 }
 
 const startDrag = (event) => {
@@ -369,7 +418,7 @@ const movePiece = (fromSquare, toSquare) => {
 
     // Handle pawn promotion
     if (validMove.piece === 'p' && (toSquare.charAt(1) === '8' || toSquare.charAt(1) === '1')) {
-      showPromotionModal.value = true
+      showPromotionDialog.value = true
       promotionSquare.value = toSquare
       return
     }
@@ -397,6 +446,8 @@ const movePiece = (fromSquare, toSquare) => {
 
     // Save current state of the game to localStorage
     saveGameState()
+
+    checkGameResult()
 
     // Deselect after move
     deselectSquare()
@@ -440,7 +491,8 @@ const promotePawn = (symbol) => {
     saveGameState()
   }
 
-  showPromotionModal.value = false
+  checkGameResult()
+  showPromotionDialog.value = false
   promotionSquare.value = null
   deselectSquare()
 }
@@ -733,7 +785,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   transform: translate(-50%, -50%);
 }
 
-.promotion-overlay {
+.dialog-overlay {
   top: 0;
   left: 0;
   z-index: 9;
@@ -743,7 +795,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   background-color: rgba(0, 0, 0, 0.5);
 }
 
-.promotion-modal {
+.dialog-modal {
   top: 50%;
   left: 50%;
   z-index: 10;
