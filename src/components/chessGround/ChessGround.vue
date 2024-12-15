@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { Chess, DEFAULT_POSITION, SQUARES } from 'chess.js'
+import { Chess, SQUARES } from 'chess.js'
 import { Chessground } from 'chessground'
 import { onMounted, ref, watch } from 'vue'
 import '../../../public/assets/chessground.base.css'
@@ -32,7 +32,7 @@ const initBoard = () => {
 
   // If the board is already created, just change the orientation
   // to update the flipped board
-  if (board.value) {
+  if (board.value !== null) {
     board.value.set({
       orientation: orientation,
       turnColor: chess.turn() === 'w' ? 'white' : 'black',
@@ -68,10 +68,12 @@ const initBoard = () => {
     },
   })
 
-  const initialFen = DEFAULT_POSITION
+  // const initialFen = DEFAULT_POSITION
+  const initialFen = 'rnb1k2r/ppppqpPp/5n2/2b5/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5'
   chess.load(initialFen)
   board.value.set({
     fen: chess.fen(),
+    turnColor: chess.turn() === 'w' ? 'white' : 'black',
   })
 }
 
