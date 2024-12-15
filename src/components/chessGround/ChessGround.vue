@@ -34,17 +34,8 @@ chess.load(initialFen)
 const initBoard = () => {
   const orientation = isFlipped.value ? 'black' : 'white'
 
-  // If the board is already created, just change the orientation
-  // to update the flipped board
-  if (board.value !== null) {
-    board.value.set({
-      orientation: orientation,
-      turnColor: chess.turn() === 'w' ? 'white' : 'black',
-    })
-    return
-  }
-
   board.value = Chessground(chessBoardContainer.value, {
+    fen: chess.fen(),
     draggable: {
       enabled: true,
     },
@@ -70,11 +61,6 @@ const initBoard = () => {
       move: (from, to) => handleMove(from, to),
       select: (square) => handleSelect(square),
     },
-  })
-
-  console.log(chess.turn())
-  board.value.set({
-    fen: chess.fen(),
   })
 }
 
