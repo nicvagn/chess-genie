@@ -1,14 +1,34 @@
 <template>
   <div class="flex justify-center pt-5">
-    <div ref="chessBoardContainer" class="size-96"></div>
-  </div>
-  <div class="flex justify-center pt-3">
-    <button
-      class="inline-block rounded border border-indigo-600 px-12 py-3 text-sm font-medium text-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring active:bg-indigo-500"
-      @click="flipBoard"
-    >
-      Flip
-    </button>
+    <div ref="chessBoardContainer" class="size-[500px]"></div>
+    <div class="flex flex-col justify-center p-3 border border-cyan-800">
+      <div class="flex flex-row">
+        <button
+          class="rounded border border-indigo-600 text-sm font-medium text-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring active:bg-indigo-500 mb-2 mr-2 w-32 h-10"
+          @click="flipBoard"
+        >
+          Flip
+        </button>
+        <button
+          class="rounded border border-red-600 text-sm font-medium text-indigo-600 hover:bg-red-600 hover:text-white focus:outline-none focus:ring active:bg-red-500 mb-2 mr-2 w-32 h-10"
+          @click="flipBoard"
+        >
+          Reset
+        </button>
+        <button
+          class="rounded border border-green-600 text-sm font-medium text-indigo-600 hover:bg-green-600 hover:text-white focus:outline-none focus:ring active:bg-green-500 mb-2 w-32 h-10"
+          @click="flipBoard"
+        >
+          New Game
+        </button>
+      </div>
+      <input
+        type="text"
+        :value="boardFen"
+        class="w-[500px] h-[25px] border border-indigo-600"
+        readonly
+      />
+    </div>
   </div>
 </template>
 
@@ -30,9 +50,12 @@ let selectedSquare = ref(null)
 const initialFen = 'rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5'
 chess.load(initialFen)
 
+let boardFen = ref(chess.fen())
+
 // Initialize the Chessground board and set the initial FEN string
 const initBoard = () => {
   const orientation = isFlipped.value ? 'black' : 'white'
+  const playerTurn = chess.turn() === 'w' ? 'white' : 'black'
 
   board.value = Chessground(chessBoardContainer.value, {
     fen: chess.fen(),
@@ -43,12 +66,12 @@ const initBoard = () => {
     coordinates: true,
     coordinatesOnSquares: true,
     orientation: orientation,
-    turnColor: chess.turn() === 'w' ? 'white' : 'black',
+    turnColor: playerTurn,
     movable: {
       free: false,
       showDests: true,
       dests: getDests(),
-      color: chess.turn() === 'w' ? 'white' : 'black',
+      color: playerTurn,
     },
     animation: {
       enabled: false,
@@ -71,7 +94,12 @@ const handleMove = (from, to) => {
 
   if (move === null || move === undefined) return false
 
+  if (move.piece === 'p' && (to.charAt(1) === '8' || to.charAt(1) === '1')) {
+    console.log('promotion')
+  }
+
   chess.move(move)
+  boardFen.value = chess.fen()
 
   if (chess.isCheck()) {
     // key is a square name. ex: e4, d4...
