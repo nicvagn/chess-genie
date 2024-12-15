@@ -26,6 +26,10 @@ let board = ref(null)
 let chess = new Chess()
 let selectedSquare = ref(null)
 
+// const initialFen = DEFAULT_POSITION
+const initialFen = 'rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5'
+chess.load(initialFen)
+
 // Initialize the Chessground board and set the initial FEN string
 const initBoard = () => {
   const orientation = isFlipped.value ? 'black' : 'white'
@@ -68,12 +72,9 @@ const initBoard = () => {
     },
   })
 
-  // const initialFen = DEFAULT_POSITION
-  const initialFen = 'rnb1k2r/ppppqpPp/5n2/2b5/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5'
-  chess.load(initialFen)
+  console.log(chess.turn())
   board.value.set({
     fen: chess.fen(),
-    turnColor: chess.turn() === 'w' ? 'white' : 'black',
   })
 }
 
