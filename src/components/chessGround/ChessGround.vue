@@ -37,7 +37,7 @@
         v-for="(piece, symbol) in promotionPieces"
         :key="symbol"
         class="promotion-image"
-        :src="`../../public/pieces/cardinal/${chess.turn()}${symbol.toUpperCase()}.svg`"
+        :src="`/pieces/cardinal/${chess.turn()}${symbol.toUpperCase()}.svg`"
         @click="promotePawn(symbol)"
       />
       <button
@@ -69,13 +69,14 @@
 </template>
 
 <script setup>
-import { Chess, SQUARES } from 'chess.js'
+import { Chess, DEFAULT_POSITION, SQUARES } from 'chess.js'
 import { Chessground } from 'chessground'
 import { onMounted, ref, watch } from 'vue'
 import '../../../public/assets/chessground.base.css'
 import '../../../public/assets/chessground.brown.css'
 import '../../../public/assets/chessground.cburnett.css'
 
+let stockfish = null
 const chessBoardContainer = ref(null)
 const isFlipped = ref(false)
 const board = ref(null)
@@ -91,9 +92,40 @@ const promotionPieces = ref({
 })
 
 // Initial FEN
-const initialFen = 'rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5'
+const initialFen = DEFAULT_POSITION
+// const initialFen = '6k1/8/8/8/8/8/3K2P1/8 w - - 0 1'
 chess.load(initialFen)
 const boardFen = ref(chess.fen())
+
+const handleStockfishMove = (move) => {
+  chess.move(move)
+  boardFen.value = chess.fen()
+  updateBoard()
+}
+
+// Initialize Stockfish
+const initStockfish = () => {
+  stockfish = new Worker('/stockfish-16.1-lite-single.js')
+
+  stockfish.onmessage = (event) => {
+    const message = event.data
+    if (typeof message === 'string') {
+      if (message.startsWith('bestmove')) {
+        const move = message.split(' ')[1]
+        handleStockfishMove(move)
+      }
+    }
+  }
+}
+
+// Start the engine
+const startEngine = () => {
+  stockfish.postMessage('uci')
+  stockfish.postMessage('setoption name UCI_Variant value normal')
+  stockfish.postMessage('ucinewgame')
+  stockfish.postMessage(`position fen ${chess.fen()}`)
+  stockfish.postMessage('go depth 10') // Adjust the search depth as needed
+}
 
 const initBoard = () => {
   const orientation = isFlipped.value ? 'black' : 'white'
@@ -147,6 +179,8 @@ const handleMove = (from, to) => {
   chess.move(move)
   boardFen.value = chess.fen()
   updateBoard()
+
+  startEngine()
   return true
 }
 
@@ -186,10 +220,14 @@ const updateBoard = () => {
       }
     }
   }
-  board.value.state.fen = chess.fen()
-  board.value.state.movable.dests = getDests()
-  board.value.state.movable.color = chess.turn() === 'w' ? 'white' : 'black'
-  board.value.state.turnColor = chess.turn() === 'w' ? 'white' : 'black'
+  board.value.set({
+    fen: chess.fen(),
+    movable: {
+      dests: getDests(),
+      color: chess.turn() === 'w' ? 'white' : 'black',
+    },
+    turnColor: chess.turn() === 'w' ? 'white' : 'black',
+  })
 }
 
 const getDests = () => {
@@ -241,6 +279,7 @@ const newGame = () => {
 
 onMounted(() => {
   initBoard()
+  initStockfish()
 })
 
 // Reinitialize the board when the orientation is flipped
