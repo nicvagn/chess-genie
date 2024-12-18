@@ -69,12 +69,12 @@
 </template>
 
 <script setup>
-import { Chess, DEFAULT_POSITION, SQUARES } from 'chess.js'
+import { Chess, SQUARES } from 'chess.js'
 import { Chessground } from 'chessground'
 import { onMounted, ref, watch } from 'vue'
 import '../../../public/assets/chessground.base.css'
-import '../../../public/assets/chessground.brown.css'
-import '../../../public/assets/chessground.cburnett.css'
+import '../../../public/assets/chessground.board.css'
+import '../../../public/assets/chessground.pieces.css'
 
 let stockfish = null
 const chessBoardContainer = ref(null)
@@ -92,8 +92,8 @@ const promotionPieces = ref({
 })
 
 // Initial FEN
-const initialFen = DEFAULT_POSITION
-// const initialFen = '6k1/8/8/8/8/8/3K2P1/8 w - - 0 1'
+// const initialFen = DEFAULT_POSITION
+const initialFen = '6k1/8/8/8/8/8/3K2P1/8 w - - 0 1'
 chess.load(initialFen)
 const boardFen = ref(chess.fen())
 
@@ -181,7 +181,6 @@ const handleMove = (from, to) => {
   updateBoard()
 
   startEngine()
-  return true
 }
 
 const cancelPromotion = () => {
@@ -206,8 +205,6 @@ const promotePawn = (promoteTo) => {
   isPawnPromotion.value = false
   boardFen.value = chess.fen()
   updateBoard()
-
-  return true
 }
 
 const updateBoard = () => {
