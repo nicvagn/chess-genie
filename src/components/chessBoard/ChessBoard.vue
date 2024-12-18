@@ -14,7 +14,7 @@
           <div
             v-for="(square, index) in currentBoardSquares"
             :key="square"
-            class="chess-cell"
+            class="square"
             :class="{
               'king-check': getKingInCheck(square),
               'last-move': lastMoveInfo.from === square || lastMoveInfo.to === square,
@@ -25,7 +25,7 @@
           >
             <span
               class="square-coordinates"
-              :style="{ color: Math.floor(index / 8) % 2 !== index % 2 ? 'white' : 'black' }"
+              :style="{ color: chess.squareColor(square) === 'light' ? 'white' : 'black' }"
               >{{ square }}</span
             >
 
@@ -83,7 +83,6 @@
             />
           </div>
         </div>
-
         <!-- Arrow -->
         <svg class="draw-arrows">
           <g
@@ -712,7 +711,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   grid-template-rows: repeat(8, 1fr);
 }
 
-.chess-cell {
+.square {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -732,7 +731,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   position: absolute;
   width: 100%;
   height: 100%;
-  z-index: 5;
+  z-index: 10;
 }
 
 .selected {
@@ -746,7 +745,7 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 10;
+  z-index: 0;
 }
 
 .square-coordinates {
