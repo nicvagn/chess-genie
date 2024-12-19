@@ -138,6 +138,17 @@
           </div>
         </div>
 
+        <SettingsDialog
+          v-if="showSettingsDialog"
+          @close="showSettingsDialog = false"
+          :selectedChessPieceSet="selectedChessPieceSet"
+          :selectedChessBoardImage="selectedChessBoardImage"
+          :chessPieceSet="chessPieceSet"
+          :chessBoardImage="chessBoardImage"
+          @updatePieceSet="updatePieceSet"
+          @updateBoardImage="updateBoardImage"
+        />
+
         <!-- Game result dialog -->
         <div v-if="showResultDialog" class="dialog-overlay" @mousedown.stop>
           <div class="dialog-modal" @mousedown.stop>
@@ -164,37 +175,15 @@
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="ml-3 mt-3">
-      <button
-        class="inline-block rounded border border-indigo-600 px-2 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring"
-        @click="flipBoard"
-      >
-        Flip Board
-      </button>
-      <select
-        class="text-indigo-600 border border-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring font-medium rounded text-sm px-2 py-2 text-center inline-flex items-center"
-        v-model="selectedChessPieceSet"
-      >
-        <option v-for="[key, value] in Object.entries(chessPieceSet)" :key="key" :value="value">
-          {{ value }}
-        </option>
-      </select>
-      <select
-        class="text-indigo-600 border border-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring font-medium rounded text-sm px-2 py-2 text-center inline-flex items-center"
-        v-model="selectedChessBoardImage"
-      >
-        <option v-for="[key, value] in Object.entries(chessBoardImage)" :key="key" :value="value">
-          {{ key }}
-        </option>
-      </select>
-      <button
-        class="inline-block rounded border border-red-600 px-2 py-2 text-sm font-medium text-red-600 hover:bg-red-600 hover:text-white focus:outline-none focus:ring"
-        @click="resetLocalStorage"
-      >
-        Reset Game
-      </button>
+      <div class="flex justify-end mt-1">
+        <button @click="flipBoard" class="mr-1 text-gray-600">
+          <font-awesome-icon icon="fa-solid fa-repeat" />
+        </button>
+        <button @click="showSettingsDialog = true" class="text-gray-600">
+          <font-awesome-icon icon="fa-solid fa-gear" />
+        </button>
+      </div>
     </div>
     <div class="ml-3">
       <MoveHistory :moves="moveHistory" :onNavigate="navigateToMove" />
@@ -206,6 +195,7 @@
 import { Chess, SQUARES } from 'chess.js'
 import { computed, onMounted, ref, watch } from 'vue'
 import MoveHistory from './MoveHistory.vue'
+import SettingsDialog from './SettingsDialog.vue'
 
 const chess = ref(new Chess())
 const boardState = ref({}) // Use an object to map square to pieces.
@@ -248,6 +238,18 @@ const currentArrow = ref(null)
 const currentArrowColor = ref(null)
 const isDragging = ref(false)
 const dragStartCell = ref(null)
+
+const showSettingsDialog = ref(false)
+
+const updatePieceSet = (newPieceSet) => {
+  selectedChessPieceSet.value = newPieceSet
+  localStorage.setItem('selectedChessPieceSet', newPieceSet)
+}
+
+const updateBoardImage = (newBoardImage) => {
+  selectedChessBoardImage.value = newBoardImage
+  localStorage.setItem('selectedChessBoardImage', newBoardImage)
+}
 
 const showPromotionDialog = ref(false)
 const promotionPieces = ref({
@@ -674,7 +676,7 @@ watch(selectedChessBoardImage, (newChessBoardImage) => {
 })
 
 // Initial Board Position
-setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5')
+setPositionFromFEN('6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28')
 </script>
 
 <style scoped>
@@ -685,7 +687,6 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
 .chessboard-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
 }
 
 .chessboard {
