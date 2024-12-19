@@ -34,18 +34,6 @@
               v-if="highlightedSquares[square] && highlightedSquares[square].type !== 'move'"
               class="highlight-square"
             >
-              <defs>
-                <filter id="drop-shadow" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-                  <feOffset dx="0" dy="0" result="offsetblur" />
-                  <feFlood flood-color="rgba(0, 0, 0, 0.2)" />
-                  <feComposite in2="offsetblur" operator="in" />
-                  <feMerge>
-                    <feMergeNode />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
               <rect
                 width="90%"
                 height="90%"
@@ -56,7 +44,6 @@
                 fill="none"
                 :stroke="highlightedSquares[square].color"
                 stroke-width="2.5"
-                filter="url(#drop-shadow)"
               />
             </svg>
 
@@ -314,8 +301,7 @@ const startDrag = (event) => {
       legalMovesForDraggingPiece.value.forEach((move) => {
         legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
-    }
-    if (event.button === 2) {
+    } else if (event.button === 2) {
       if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
       else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
       else if (event.shiftKey) currentArrowColor.value = colors.shift
@@ -713,6 +699,13 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   object-fit: contain;
 }
 
+.highlight-square {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
 .draw-arrows {
   position: absolute;
   top: 0;
@@ -721,13 +714,6 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   height: 100%;
   pointer-events: none;
   z-index: 10;
-}
-
-.highlight-square {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
 }
 
 .selected {
