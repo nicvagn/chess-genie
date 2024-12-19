@@ -319,7 +319,21 @@ const startDrag = (event) => {
 
 const endDrag = () => {
   if (currentArrow.value && currentArrow.value.end) {
-    arrows.value.push(currentArrow.value)
+    const existingArrowIndex = arrows.value.findIndex(
+      (arrow) =>
+        arrow.color === currentArrow.value.color &&
+        arrow.start.x === currentArrow.value.start.x &&
+        arrow.start.y === currentArrow.value.start.y &&
+        arrow.end.x === currentArrow.value.end.x &&
+        arrow.end.y === currentArrow.value.end.y,
+    )
+    if (existingArrowIndex !== -1) {
+      // Remove the existing arrow of the same color and position
+      arrows.value.splice(existingArrowIndex, 1)
+    } else {
+      // If no existing arrow, add the new one
+      arrows.value.push(currentArrow.value)
+    }
   }
   currentArrow.value = null
   isDragging.value = false
