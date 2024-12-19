@@ -83,18 +83,20 @@
             />
           </div>
         </div>
+
         <!-- Arrow -->
         <svg class="draw-arrows">
-          <g
-            v-for="(arrow, index) in arrows"
-            :key="index"
-            stroke-width="5"
-            :stroke="arrow.color"
-            fill="none"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            opacity="0.7"
-          >
+          <g v-for="(arrow, index) in arrows" :key="index">
+            <marker
+              :id="`arrowhead-${index}`"
+              refX="1.25"
+              refY="1.25"
+              markerWidth="2"
+              markerHeight="2.5"
+              orient="auto"
+            >
+              <polygon points="0.3 0, 2 1.25, 0.3 2.5" :fill="arrow.color" />
+            </marker>
             <line
               :x1="arrow.start.x"
               :y1="arrow.start.y"
@@ -102,29 +104,11 @@
               :y2="arrow.end.y"
               :marker-end="`url(#arrowhead-${index})`"
               filter="url(#drop-shadow)"
+              stroke-width="10"
+              :stroke="arrow.color"
+              fill="none"
+              opacity="0.7"
             />
-            <defs>
-              <marker
-                :id="`arrowhead-${index}`"
-                viewBox="0 0 6 6"
-                refX="3"
-                refY="3"
-                markerWidth="6"
-                markerHeight="6"
-                orient="auto-start-reverse"
-                overflow="visible"
-              >
-                <polyline
-                  points="0,3 3,1.5 0,0"
-                  fill="none"
-                  stroke-width="1"
-                  :stroke="arrow.color"
-                  stroke-linecap="round"
-                  transform="matrix(1,0,0,1,1,1.5)"
-                  stroke-linejoin="round"
-                ></polyline>
-              </marker>
-            </defs>
           </g>
         </svg>
 
@@ -330,12 +314,12 @@ const startDrag = (event) => {
       legalMovesForDraggingPiece.value.forEach((move) => {
         legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
-    } else if (event.button === 2) {
+    }
+    if (event.button === 2) {
       if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
       else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
       else if (event.shiftKey) currentArrowColor.value = colors.shift
       else if (event.altKey) currentArrowColor.value = colors.alt
-      else currentArrowColor.value = null
 
       currentArrow.value = {
         start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
@@ -384,10 +368,12 @@ const handleCellClick = (square, event) => {
     highlightedSquares.value[square] = existingHighlight?.color === color ? null : { color }
   }
 
-  if (event.altKey && event.shiftKey) toggleHighlight(colors.altShift)
-  else if (event.ctrlKey) toggleHighlight(colors.ctrl)
-  else if (event.shiftKey) toggleHighlight(colors.shift)
-  else if (event.altKey) toggleHighlight(colors.alt)
+  if (event.button === 0) {
+    if (event.altKey && event.shiftKey) toggleHighlight(colors.altShift)
+    else if (event.ctrlKey) toggleHighlight(colors.ctrl)
+    else if (event.shiftKey) toggleHighlight(colors.shift)
+    else if (event.altKey) toggleHighlight(colors.alt)
+  }
 }
 
 // Function to get the center coordinates of a square on the chessboard
@@ -727,17 +713,6 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   object-fit: contain;
 }
 
-.highlight-square {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-}
-
-.selected {
-  background-color: rgba(20, 85, 30, 0.5);
-}
-
 .draw-arrows {
   position: absolute;
   top: 0;
@@ -745,7 +720,18 @@ setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq
   width: 100%;
   height: 100%;
   pointer-events: none;
+  z-index: 10;
+}
+
+.highlight-square {
+  position: absolute;
+  width: 100%;
+  height: 100%;
   z-index: 0;
+}
+
+.selected {
+  background-color: rgba(20, 85, 30, 0.5);
 }
 
 .square-coordinates {
