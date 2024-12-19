@@ -7,10 +7,11 @@
         @mousedown="startDrag"
         @mouseup="endDrag"
         @mousemove="handleMouseMove"
+        @contextmenu.prevent
         :style="{ 'background-image': `url('../../public/chessboard/${selectedChessBoardImage}')` }"
       >
         <div class="chessboard-hidden" ref="hiddenBoard">
-          <!-- Iterate over chessboardSquares to create each cell on the chessboard -->
+          <!-- Iterate over chessboardSquares to create each square on the chessboard -->
           <div
             v-for="(square, index) in currentBoardSquares"
             :key="square"
