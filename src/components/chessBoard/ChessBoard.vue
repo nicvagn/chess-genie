@@ -217,6 +217,7 @@ const legalMovesHighlight = ref({})
 
 const moveHistory = ref([])
 const lastMoveInfo = ref({ from: null, to: null, piece: null })
+const activeMoveIndex = ref(null)
 
 const chessBoardSquares = SQUARES
 const currentBoardSquares = computed(() =>
@@ -420,15 +421,25 @@ const movePiece = (fromSquare, toSquare) => {
       piece: boardState.value[toSquare],
     }
 
-    // Add move to history
-    moveHistory.value.push({
+    const moveEntry = {
       san: validMove.san,
       before: validMove.before,
       after: validMove.after,
       color: validMove.color,
       from: validMove.from,
       to: validMove.to,
-    })
+      variations: [],
+    }
+
+    // Add move to history
+    if (activeMoveIndex.value !== null) {
+      // If there is an active move, append the new move as a variation
+      moveHistory.value[activeMoveIndex.value].variations.push(moveEntry)
+      activeMoveIndex.value = null
+    } else {
+      // If no active move, just push the move as a new entry
+      moveHistory.value.push(moveEntry)
+    }
 
     // Save current state of the game to localStorage
     saveGameState()
@@ -584,6 +595,7 @@ const navigateToMove = (index) => {
       piece: boardState.value[selectedMove.to],
     }
     setPositionFromFEN(selectedMove.after)
+    activeMoveIndex.value = index
   }
 }
 
