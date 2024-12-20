@@ -325,7 +325,7 @@ const startDrag = (event) => {
       legalMovesForDraggingPiece.value.forEach((move) => {
         legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
-    } else if (event.button === 2) {
+    } else if (event.button === 2 && event.shiftKey) {
       if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
       else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
       else if (event.shiftKey) currentArrowColor.value = colors.shift
