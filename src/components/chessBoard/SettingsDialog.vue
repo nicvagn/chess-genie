@@ -1,26 +1,54 @@
 <template>
-  <div class="dialog-overlay" @mousedown="closeDialog">
+  <div class="dialog-overlay">
     <div class="dialog-modal" @mousedown.stop>
-      <h2>Settings</h2>
-      <select
-        class="text-indigo-600 border border-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring font-medium rounded text-sm px-2 py-2 text-center inline-flex items-center"
-        v-model="selectedPieceSet"
-        @change="updatePieceSet"
-      >
-        <option v-for="[key, value] in Object.entries(chessPieceSet)" :key="key" :value="value">
-          {{ value }}
-        </option>
-      </select>
-      <select
-        class="text-indigo-600 border border-indigo-600 hover:bg-indigo-600 hover:text-white focus:outline-none focus:ring font-medium rounded text-sm px-2 py-2 text-center inline-flex items-center"
-        v-model="selectedBoardImage"
-        @change="updateBoardImage"
-      >
-        <option v-for="[key, value] in Object.entries(chessBoardImage)" :key="key" :value="value">
-          {{ key }}
-        </option>
-      </select>
-      <button @click="closeDialog">Close</button>
+      <h2 class="bg-gray-300 p-1 mb-2 rounded-md text-center">Settings</h2>
+
+      <div class="flex justify-between items-center mb-2">
+        <label for="piece-set" class="mr-2 whitespace-nowrap">Piece Set</label>
+        <select
+          id="piece-set"
+          class="text-gray-600 border border-gray-600 focus:outline-none font-medium rounded text-sm p-1"
+          v-model="selectedPieceSet"
+          @change="updatePieceSet"
+        >
+          <option v-for="[key, value] in Object.entries(chessPieceSet)" :key="key" :value="value">
+            {{ value }}
+          </option>
+        </select>
+      </div>
+
+      <div class="flex justify-between items-center mb-2">
+        <label for="board-image" class="mr-2 whitespace-nowrap">Board Image</label>
+        <select
+          id="board-image"
+          class="text-gray-600 border border-gray-600 focus:outline-none font-medium rounded text-sm p-1"
+          v-model="selectedBoardImage"
+          @change="updateBoardImage"
+        >
+          <option v-for="[key, value] in Object.entries(chessBoardImage)" :key="key" :value="value">
+            {{ key }}
+          </option>
+        </select>
+      </div>
+
+      <div class="flex justify-between items-center mb-2">
+        <label for="show-attackers" class="mr-2 whitespace-nowrap">Show Attackers</label>
+
+        <label class="inline-flex items-center cursor-pointer">
+          <input
+            id="show-attackers"
+            type="checkbox"
+            class="sr-only peer"
+            v-model="showAttackers"
+            @change="updateShowAttackers"
+          />
+          <div
+            class="relative w-11 h-6 bg-gray-500 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"
+          ></div>
+        </label>
+      </div>
+
+      <button @click="closeDialog" class="mt-2">Close</button>
     </div>
   </div>
 </template>
@@ -28,26 +56,32 @@
 <script setup>
 import { defineEmits, defineProps, ref } from 'vue'
 
-const emit = defineEmits(['close', 'updatePieceSet', 'updateBoardImage'])
+const emit = defineEmits(['close', 'updatePieceSet', 'updateBoardImage', 'updateShowAttackers'])
 
 const props = defineProps({
   selectedChessPieceSet: String,
   selectedChessBoardImage: String,
   chessPieceSet: Object,
   chessBoardImage: Object,
+  showAttackers: Boolean,
 })
 
 const selectedPieceSet = ref(props.selectedChessPieceSet)
 const selectedBoardImage = ref(props.selectedChessBoardImage)
+const showAttackers = ref(props.showAttackers)
 
 const updatePieceSet = () => {
   emit('updatePieceSet', selectedPieceSet.value)
 }
 
-// Emit the new selected board image value
 const updateBoardImage = () => {
   emit('updateBoardImage', selectedBoardImage.value)
 }
+
+const updateShowAttackers = () => {
+  emit('updateShowAttackers', showAttackers.value)
+}
+
 const closeDialog = () => {
   emit('close')
 }
@@ -71,12 +105,13 @@ const closeDialog = () => {
   display: flex;
   position: inherit;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   transform: translate(-50%, -50%);
   background-color: white;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  width: 300px;
 }
 </style>

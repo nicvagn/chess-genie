@@ -56,6 +56,26 @@
               class="highlight-circle"
             ></div>
 
+            <!-- highlight Attackers Square -->
+            <svg
+              v-if="
+                showAttackerHighlights && attackersDefendersHighlights[square]?.type === 'attack'
+              "
+              class="highlight-square"
+            >
+              <rect
+                width="90%"
+                height="90%"
+                x="3"
+                y="3"
+                rx="10"
+                ry="10"
+                fill="none"
+                :stroke="attackersDefendersHighlights[square].color"
+                stroke-width="2.5"
+              />
+            </svg>
+
             <!-- Chess piece image -->
             <img
               v-if="boardState[square]"
@@ -120,13 +140,7 @@
                 }
               "
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path
                   stroke-linecap="round"
                   stroke-linejoin="round"
@@ -145,8 +159,10 @@
           :selectedChessBoardImage="selectedChessBoardImage"
           :chessPieceSet="chessPieceSet"
           :chessBoardImage="chessBoardImage"
+          :showAttackers="showAttackerHighlights"
           @updatePieceSet="updatePieceSet"
           @updateBoardImage="updateBoardImage"
+          @updateShowAttackers="updateShowAttackers"
         />
 
         <!-- Game result dialog -->
@@ -241,14 +257,16 @@ const dragStartCell = ref(null)
 
 const showSettingsDialog = ref(false)
 
-const updatePieceSet = (newPieceSet) => {
-  selectedChessPieceSet.value = newPieceSet
-  localStorage.setItem('selectedChessPieceSet', newPieceSet)
+const updatePieceSet = (newValue) => {
+  selectedChessPieceSet.value = newValue
 }
 
-const updateBoardImage = (newBoardImage) => {
-  selectedChessBoardImage.value = newBoardImage
-  localStorage.setItem('selectedChessBoardImage', newBoardImage)
+const updateBoardImage = (newValue) => {
+  selectedChessBoardImage.value = newValue
+}
+
+const updateShowAttackers = (newValue) => {
+  showAttackerHighlights.value = newValue
 }
 
 const showPromotionDialog = ref(false)
@@ -269,6 +287,8 @@ const colors = {
 
 const showResultDialog = ref(false)
 const resultDialogMessage = ref('')
+const showAttackerHighlights = ref(true)
+const attackersDefendersHighlights = ref({})
 
 const checkGameResult = () => {
   if (chess.value.isGameOver()) {
@@ -310,6 +330,7 @@ const startDrag = (event) => {
       else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
       else if (event.shiftKey) currentArrowColor.value = colors.shift
       else if (event.altKey) currentArrowColor.value = colors.alt
+      else currentArrowColor.value = null
 
       currentArrow.value = {
         start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
@@ -394,6 +415,7 @@ const deselectSquare = () => {
   highlightedSquares.value = {}
   legalMovesHighlight.value = {}
   selectedCell.value = null
+  attackersDefendersHighlights.value = {}
 }
 
 const movePiece = (fromSquare, toSquare) => {
@@ -506,17 +528,18 @@ const getAttackersAndDefenders = (square) => {
 }
 
 const highlightAttackerSquares = (event) => {
+  if (!showAttackerHighlights.value) return
   const squareInfo = getSquareInfoFromMouseEvent(event)
 
   if (legalMovesForDraggingPiece.value.includes(squareInfo.name)) {
     const { attackers } = getAttackersAndDefenders(squareInfo.name)
 
-    Object.keys(highlightedSquares.value)
-      .filter((square) => highlightedSquares.value[square]?.type === 'attack')
-      .forEach((square) => delete highlightedSquares.value[square])
+    Object.keys(attackersDefendersHighlights.value)
+      .filter((square) => attackersDefendersHighlights.value[square]?.type === 'attack')
+      .forEach((square) => delete attackersDefendersHighlights.value[square])
 
     attackers.forEach((attacker) => {
-      highlightedSquares.value[attacker] = { color: 'red', type: 'attack' }
+      attackersDefendersHighlights.value[attacker] = { color: 'red', type: 'attack' }
     })
   }
 }
@@ -817,5 +840,11 @@ setPositionFromFEN('6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28')
 
 .promotion-image:hover {
   background-color: rgba(20, 85, 30, 0.5);
+}
+
+.highlight-attack {
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
 </style>
