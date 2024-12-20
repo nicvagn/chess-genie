@@ -1,21 +1,18 @@
 <template>
   <div class="editor-container">
     <div class="piece-set">
-      <div class="pieces">
-        <div
-          v-for="piece in pieces"
-          :key="piece"
-          class="piece"
-          :draggable="true"
-          @dragstart="dragStart(piece)"
-        >
-          <img
-            :src="`../../public/pieces/${selectedChessPieceSet}/${piece}.svg`"
-            :alt="piece"
-            :title="piece"
-            width="40px"
-          />
-        </div>
+      <div
+        v-for="piece in pieces"
+        :key="piece"
+        class="piece"
+        :draggable="true"
+        @dragstart="dragStart(piece)"
+      >
+        <img
+          :src="`../../public/pieces/${selectedChessPieceSet}/${piece}.svg`"
+          :alt="piece"
+          :title="piece"
+        />
       </div>
     </div>
 
@@ -26,6 +23,7 @@
         :data-square="square"
         class="square"
         :class="{ occupied: boardState[square] }"
+        @click="removePiece(square)"
       >
         <img
           v-if="boardState[square]"
@@ -38,8 +36,39 @@
     </div>
 
     <div class="fen-container">
-      <h3>Current FEN:</h3>
       <p>{{ generateFEN }}</p>
+    </div>
+
+    <div class="option-selector">
+      <label>
+        <input type="radio" value="white" v-model="turn" />
+        White's turn
+      </label>
+      <label>
+        <input type="radio" value="black" v-model="turn" />
+        Black's turn
+      </label>
+    </div>
+    <div>
+      <label
+        >White :
+        <input type="checkbox" v-model="castlingRights.wQC" />
+        0-0-0
+      </label>
+      <label>
+        <input type="checkbox" v-model="castlingRights.wKC" />
+        0-0
+      </label>
+
+      <label
+        >Black :
+        <input type="checkbox" v-model="castlingRights.bQC" />
+        0-0-0
+      </label>
+      <label>
+        <input type="checkbox" v-model="castlingRights.bKC" />
+        0-0
+      </label>
     </div>
   </div>
 </template>
@@ -56,19 +85,33 @@ const chessBoardSquares = SQUARES
 
 const currentBoardSquares = computed(() => chessBoardSquares)
 
+const turn = ref('white')
+
+const castlingRights = ref({
+  wKC: false, // White King-side
+  wQC: false, // White Queen-side
+  bKC: false, // Black King-side
+  bQC: false, // Black Queen-side
+})
+
 const dragStart = (piece) => {
-  // Store the piece being dragged
   event.dataTransfer.setData('piece', piece)
 }
 
 const drop = (event) => {
-  // Get data from the drag and drop operation
   const piece = event.dataTransfer.getData('piece')
   const targetSquare = event.target.getAttribute('data-square')
 
-  // Update board state
-  if (targetSquare) {
-    boardState.value[targetSquare] = piece // Place the piece on the square
+  if (targetSquare && !boardState.value[targetSquare]) {
+    // Ensure square is not occupied
+    boardState.value[targetSquare] = piece
+  }
+}
+
+// New method to remove the piece from the chessboard
+const removePiece = (square) => {
+  if (boardState.value[square]) {
+    delete boardState.value[square] // Delete the piece at the clicked square
   }
 }
 
@@ -96,7 +139,6 @@ const generateFEN = computed(() => {
       }
     }
 
-    // If there are empty squares at the end of the row, append their count
     if (emptySquares > 0) {
       row += emptySquares
     }
@@ -105,28 +147,31 @@ const generateFEN = computed(() => {
   }
 
   const board = rows.join('/')
-  return `${board} w KQkq - 0 1` // Assuming white to move, full castling rights, no en passant, 0 halfmove clock, 1 fullmove number
+  const castling =
+    `${castlingRights.value.wKC ? 'K' : ''}${castlingRights.value.wQC ? 'Q' : ''}${castlingRights.value.bKC ? 'k' : ''}${castlingRights.value.bQC ? 'q' : ''}` ||
+    '-'
+
+  // Update the active turn in the FEN
+  return `${board} ${turn.value === 'white' ? 'w' : 'b'} ${castling} - 0 1`
 })
 </script>
 
 <style scoped>
 .editor-container {
   display: flex;
+  flex-direction: column;
 }
 
 .piece-set {
-  width: 150px;
-  margin-right: 20px;
-}
-
-.pieces {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
 }
 
 .piece {
   cursor: move;
   margin: 5px 0;
+  width: 33px;
+  max-width: 100px;
 }
 
 .chessboard {
@@ -166,5 +211,9 @@ const generateFEN = computed(() => {
 
 .fen-container p {
   word-wrap: break-word;
+}
+
+.option-selector {
+  margin-left: 20px;
 }
 </style>
