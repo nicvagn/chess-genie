@@ -263,6 +263,7 @@ const initialFEN = ref('6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28')
 
 const arrows = ref([])
 const currentArrow = ref(null)
+const currentArrowColor = ref(null)
 const isDragging = ref(false)
 const dragStartCell = ref(null)
 
@@ -337,31 +338,18 @@ const startDrag = (event) => {
         legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
     } else if (event.button === 2) {
-      if (event.altKey && event.shiftKey) {
+      if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
+      else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
+      else if (event.shiftKey) currentArrowColor.value = colors.shift
+      else if (event.altKey) currentArrowColor.value = colors.alt
+      else currentArrowColor.value = null
+
+      if (currentArrowColor.value !== null)
         currentArrow.value = {
           start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
           end: null,
-          color: colors.altShift,
+          color: currentArrowColor.value,
         }
-      } else if (event.ctrlKey) {
-        currentArrow.value = {
-          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
-          end: null,
-          color: colors.ctrl,
-        }
-      } else if (event.shiftKey) {
-        currentArrow.value = {
-          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
-          end: null,
-          color: colors.shift,
-        }
-      } else if (event.altKey) {
-        currentArrow.value = {
-          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
-          end: null,
-          color: colors.alt,
-        }
-      }
     }
   }
 }
