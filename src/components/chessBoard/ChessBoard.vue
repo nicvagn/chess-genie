@@ -263,7 +263,6 @@ const initialFEN = ref('6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28')
 
 const arrows = ref([])
 const currentArrow = ref(null)
-const currentArrowColor = ref(null)
 const isDragging = ref(false)
 const dragStartCell = ref(null)
 
@@ -338,23 +337,37 @@ const startDrag = (event) => {
         legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
     } else if (event.button === 2) {
-      if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
-      else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
-      else if (event.shiftKey) currentArrowColor.value = colors.shift
-      else if (event.altKey) currentArrowColor.value = colors.alt
-      else currentArrowColor.value = null
-
-      currentArrow.value = {
-        start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
-        end: null,
-        color: currentArrowColor.value,
+      if (event.altKey && event.shiftKey) {
+        currentArrow.value = {
+          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
+          end: null,
+          color: colors.altShift,
+        }
+      } else if (event.ctrlKey) {
+        currentArrow.value = {
+          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
+          end: null,
+          color: colors.ctrl,
+        }
+      } else if (event.shiftKey) {
+        currentArrow.value = {
+          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
+          end: null,
+          color: colors.shift,
+        }
+      } else if (event.altKey) {
+        currentArrow.value = {
+          start: getSquareCenter(dragStartCell.value.row, dragStartCell.value.column),
+          end: null,
+          color: colors.alt,
+        }
       }
     }
   }
 }
 
 const endDrag = () => {
-  if (currentArrow.value && currentArrow.value.end) {
+  if (arrows.value && currentArrow.value && currentArrow.value.end) {
     const existingArrowIndex = arrows.value.findIndex(
       (arrow) =>
         arrow.color === currentArrow.value.color &&
@@ -484,6 +497,7 @@ const movePiece = (fromSquare, toSquare) => {
 
     // Deselect after move
     deselectSquare()
+    arrows.value = null
   } else {
     // Deselect if it's wrong move
     deselectSquare()
@@ -527,6 +541,7 @@ const promotePawn = (symbol) => {
   checkGameResult()
   showPromotionDialog.value = false
   promotionSquare.value = null
+  arrows.value = null
   deselectSquare()
 }
 
