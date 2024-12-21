@@ -1,74 +1,100 @@
 <template>
-  <div class="editor-container">
-    <div class="piece-set">
-      <div
-        v-for="piece in pieces"
-        :key="piece"
-        class="piece"
-        :draggable="true"
-        @dragstart="dragStart(piece)"
-      >
-        <img
-          :src="`../../public/pieces/${selectedChessPieceSet}/${piece}.svg`"
-          :alt="piece"
-          :title="piece"
-        />
+  <div class="dialog-overlay border border-none rounded-lg">
+    <div class="dialog-modal border border-none rounded-lg" @mousedown.stop>
+      <div class="flex flex-row">
+        <div
+          v-for="piece in pieces"
+          :key="piece"
+          class="piece"
+          :draggable="true"
+          @dragstart="dragStart"
+        >
+          <img
+            :src="`../../public/pieces/cardinal/${piece}.svg`"
+            :alt="piece"
+            :title="piece"
+            :data-piece="piece"
+          />
+        </div>
       </div>
-    </div>
 
-    <div class="chessboard" @dragover.prevent @drop="drop">
       <div
-        v-for="(square, index) in currentBoardSquares"
-        :key="square"
-        :data-square="square"
-        class="square"
-        :class="{ occupied: boardState[square] }"
-        @click="removePiece(square)"
+        class="chessboard border border-none rounded-md"
+        :style="{ 'background-image': `url('../../public/chessboard/blue.png')` }"
       >
-        <img
-          v-if="boardState[square]"
-          :src="`../../public/pieces/${selectedChessPieceSet}/${boardState[square]}.svg`"
-          :alt="boardState[square]"
-          :title="boardState[square]"
-          draggable="false"
-        />
+        <div class="chessboard-hidden" @dragover.prevent @drop="drop">
+          <div
+            v-for="(square, index) in currentBoardSquares"
+            :key="square"
+            :data-square="square"
+            class="square"
+            @click="removePiece(square)"
+          >
+            <span
+              class="square-coordinates"
+              :style="{ color: Math.floor(index / 8) % 2 !== index % 2 ? 'white' : 'black' }"
+              >{{ square }}</span
+            >
+            <img
+              v-if="boardState[square]"
+              :src="`../../public/pieces/cardinal/${boardState[square]}.svg`"
+              :alt="boardState[square]"
+              :title="boardState[square]"
+              draggable="false"
+            />
+          </div>
+        </div>
       </div>
-    </div>
 
-    <div class="fen-container">
-      <p>{{ generateFEN }}</p>
-    </div>
+      <div class="flex flex-row justify-center">
+        <input
+          type="text"
+          :value="generateFEN"
+          readonly
+          class="w-[350px] border my-1 focus:bg-none border-black focus:outline-none rounded-sm"
+        />
+        <button
+          class="text-gray-600 border my-1 ml-3 border-gray-600 focus:outline-none font-medium rounded-sm text-sm w-10"
+        >
+          load
+        </button>
+      </div>
+      <div class="flex flex-row mb-1 justify-center">
+        <div class="flex flex-col pr-2 bg-gray-500 rounded-sm mr-2 w-[130px] text-center">
+          <label>
+            <input type="radio" value="white" v-model="turn" />
+            white's turn
+          </label>
+          <div class="flex flex-row justify-evenly">
+            <label>
+              <input type="checkbox" v-model="castlingRights.wQC" title="Queen Side castling" />
+              0-0-0
+            </label>
+            <label>
+              <input type="checkbox" v-model="castlingRights.wKC" title="King Side castling" />
+              0-0
+            </label>
+          </div>
+        </div>
 
-    <div class="option-selector">
-      <label>
-        <input type="radio" value="white" v-model="turn" />
-        White's turn
-      </label>
-      <label>
-        <input type="radio" value="black" v-model="turn" />
-        Black's turn
-      </label>
-    </div>
-    <div>
-      <label
-        >White :
-        <input type="checkbox" v-model="castlingRights.wQC" />
-        0-0-0
-      </label>
-      <label>
-        <input type="checkbox" v-model="castlingRights.wKC" />
-        0-0
-      </label>
+        <div class="flex flex-col pr-2 bg-gray-500 rounded-sm mr-2 w-[130px] text-center">
+          <label>
+            <input type="radio" value="black" v-model="turn" />
+            black's turn
+          </label>
 
-      <label
-        >Black :
-        <input type="checkbox" v-model="castlingRights.bQC" />
-        0-0-0
-      </label>
-      <label>
-        <input type="checkbox" v-model="castlingRights.bKC" />
-        0-0
-      </label>
+          <div class="flex flex-row justify-evenly">
+            <label>
+              <input type="checkbox" v-model="castlingRights.bQC" title="Queen Side castling" />
+              0-0-0
+            </label>
+            <label>
+              <input type="checkbox" v-model="castlingRights.bKC" title="King Side castling" />
+              0-0
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -77,8 +103,7 @@
 import { SQUARES } from 'chess.js'
 import { computed, ref } from 'vue'
 
-const pieces = ref(['bp', 'br', 'bn', 'bb', 'bq', 'bk', 'wp', 'wr', 'wn', 'wb', 'wq', 'wk'])
-const selectedChessPieceSet = ref('Cardinal')
+const pieces = ref(['bP', 'bR', 'bN', 'bB', 'bQ', 'bK', 'wP', 'wR', 'wN', 'wB', 'wQ', 'wK'])
 
 const boardState = ref({})
 const chessBoardSquares = SQUARES
@@ -94,7 +119,8 @@ const castlingRights = ref({
   bQC: false, // Black Queen-side
 })
 
-const dragStart = (piece) => {
+const dragStart = (event) => {
+  const piece = event.target.getAttribute('data-piece')
   event.dataTransfer.setData('piece', piece)
 }
 
@@ -102,13 +128,12 @@ const drop = (event) => {
   const piece = event.dataTransfer.getData('piece')
   const targetSquare = event.target.getAttribute('data-square')
 
+  // Ensure square is not occupied
   if (targetSquare && !boardState.value[targetSquare]) {
-    // Ensure square is not occupied
     boardState.value[targetSquare] = piece
   }
 }
 
-// New method to remove the piece from the chessboard
 const removePiece = (square) => {
   if (boardState.value[square]) {
     delete boardState.value[square] // Delete the piece at the clicked square
@@ -133,7 +158,8 @@ const generateFEN = computed(() => {
           emptySquares = 0
         }
         // Convert black pieces to lowercase and white pieces to uppercase
-        row += piece.charAt(0) === 'b' ? piece.charAt(1) : piece.charAt(1).toUpperCase()
+        row +=
+          piece.charAt(0) === 'b' ? piece.charAt(1).toLowerCase() : piece.charAt(1).toUpperCase()
       } else {
         emptySquares++
       }
@@ -157,63 +183,96 @@ const generateFEN = computed(() => {
 </script>
 
 <style scoped>
-.editor-container {
-  display: flex;
-  flex-direction: column;
+.dialog-overlay {
+  top: 0;
+  left: 0;
+  z-index: 9;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.5);
 }
 
-.piece-set {
+.dialog-modal {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  width: 500px;
+  height: 500px;
+  max-width: 500px;
+  max-height: 500px;
+  position: relative;
+}
+
+.piece-container {
   display: flex;
   flex-direction: row;
+  justify-content: center;
+  padding: 10px;
 }
 
 .piece {
-  cursor: move;
-  margin: 5px 0;
-  width: 33px;
+  cursor: grab;
+  width: 40px;
   max-width: 100px;
 }
 
 .chessboard {
-  width: 400px;
-  height: 400px;
+  width: 380px;
+  height: 380px;
+  background-position: center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  position: relative;
+  user-select: none;
+  margin: 0 auto;
+}
+
+.chessboard-hidden {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0);
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   grid-template-rows: repeat(8, 1fr);
-  border: 1px solid black;
 }
 
 .square {
-  border: 1px solid #ccc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   position: relative;
-}
-
-.square.occupied {
-  background-color: #f0e68c;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
 }
 
 .square img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+}
+
+.square-coordinates {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0.5px;
+  right: 0.5px;
+  font-size: 11px;
+  font-weight: lighter;
+  pointer-events: none;
+  user-select: none;
 }
 
-.square:hover {
-  background-color: rgba(255, 255, 0, 0.2);
-}
-
-.fen-container {
-  margin-left: 20px;
-}
-
-.fen-container p {
-  word-wrap: break-word;
-}
-
-.option-selector {
-  margin-left: 20px;
+.options-container {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: #f9f9f9;
+  border-top: 1px solid #ccc;
 }
 </style>

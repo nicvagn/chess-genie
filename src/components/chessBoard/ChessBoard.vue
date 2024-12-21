@@ -2,7 +2,7 @@
   <div class="chess-container">
     <div class="chessboard-wrapper">
       <div
-        class="chessboard"
+        class="chessboard border border-none rounded-lg"
         ref="board"
         @mousedown="startDrag"
         @mouseup="endDrag"
@@ -26,7 +26,7 @@
           >
             <span
               class="square-coordinates"
-              :style="{ color: chess.squareColor(square) === 'light' ? 'white' : 'black' }"
+              :style="{ color: chess.squareColor(square) === 'light' ? 'black' : 'white' }"
               >{{ square }}</span
             >
 
@@ -190,9 +190,13 @@
             </button>
           </div>
         </div>
+        <ChessboardEditor v-if="showEditor" />
       </div>
 
       <div class="flex justify-end mt-1">
+        <button @click="showEditor = !showEditor" class="mr-1 text-gray-600">
+          <font-awesome-icon icon="fa-solid fa-chess-board" />
+        </button>
         <button @click="flipBoard" class="mr-1 text-gray-600">
           <font-awesome-icon icon="fa-solid fa-repeat" />
         </button>
@@ -210,8 +214,11 @@
 <script setup>
 import { Chess, SQUARES } from 'chess.js'
 import { computed, onMounted, ref, watch } from 'vue'
+import ChessboardEditor from './ChessboardEditor.vue'
 import MoveHistory from './MoveHistory.vue'
 import SettingsDialog from './SettingsDialog.vue'
+
+const showEditor = ref(false)
 
 const chess = ref(new Chess())
 const boardState = ref({}) // Use an object to map square to pieces.
@@ -325,7 +332,7 @@ const startDrag = (event) => {
       legalMovesForDraggingPiece.value.forEach((move) => {
         legalMovesHighlight.value[move] = { color: 'green', type: 'legalMoves' }
       })
-    } else if (event.button === 2 && event.shiftKey) {
+    } else if (event.button === 2) {
       if (event.altKey && event.shiftKey) currentArrowColor.value = colors.altShift
       else if (event.ctrlKey) currentArrowColor.value = colors.ctrl
       else if (event.shiftKey) currentArrowColor.value = colors.shift

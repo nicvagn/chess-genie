@@ -1,5 +1,5 @@
 <template>
-  <div class="dialog-overlay">
+  <div class="dialog-overlay border border-none rounded-lg" @mousedown.stop>
     <div class="dialog-modal" @mousedown.stop>
       <h2 class="bg-gray-300 p-1 mb-2 rounded-md text-center">Settings</h2>
 
