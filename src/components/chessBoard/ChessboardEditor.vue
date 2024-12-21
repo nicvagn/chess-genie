@@ -10,7 +10,7 @@
           @dragstart="dragStart"
         >
           <img
-            :src="`../../public/pieces/cardinal/${piece}.svg`"
+            :src="`../../public/pieces/${selectedChessPieceSet}/${piece}.svg`"
             :alt="piece"
             :title="piece"
             :data-piece="piece"
@@ -20,7 +20,7 @@
 
       <div
         class="chessboard border border-none rounded-md"
-        :style="{ 'background-image': `url('../../public/chessboard/blue.png')` }"
+        :style="{ 'background-image': `url('../../public/chessboard/${selectedChessBoardImage}')` }"
       >
         <div class="chessboard-hidden" @dragover.prevent @drop="drop">
           <div
@@ -126,6 +126,14 @@ const castlingRights = ref({
   bKC: false, // Black King-side
   bQC: false, // Black Queen-side
 })
+
+const selectedChessPieceSet = ref('Cardinal')
+const storedPieceSet = localStorage.getItem('selectedChessPieceSet')
+if (storedPieceSet) selectedChessPieceSet.value = storedPieceSet
+
+const selectedChessBoardImage = ref('blue2.jpg')
+const storedChessBoardImage = localStorage.getItem('selectedChessBoardImage')
+if (storedChessBoardImage) selectedChessBoardImage.value = storedChessBoardImage
 
 const dragStart = (event) => {
   const piece = event.target.getAttribute('data-piece')
