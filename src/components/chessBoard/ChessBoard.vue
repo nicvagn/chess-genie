@@ -190,12 +190,15 @@
             </button>
           </div>
         </div>
-        <ChessboardEditor v-if="showEditor" />
+        <ChessboardEditor v-if="showEditor" @loadFEN="setPositionFromFEN" />
       </div>
 
       <div class="flex justify-end mt-1">
         <button @click="showEditor = !showEditor" class="mr-1 text-gray-600">
           <font-awesome-icon icon="fa-solid fa-chess-board" />
+        </button>
+        <button @click="resetLocalStorage" class="mr-1 text-gray-600">
+          <font-awesome-icon icon="fa-solid fa-trash" />
         </button>
         <button @click="flipBoard" class="mr-1 text-gray-600">
           <font-awesome-icon icon="fa-solid fa-repeat" />
@@ -255,6 +258,8 @@ const chessBoardImage = {
   wood4: 'wood4.jpg',
 }
 const selectedChessBoardImage = ref('blue2.jpg')
+
+const initialFEN = ref('6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28')
 
 const arrows = ref([])
 const currentArrow = ref(null)
@@ -655,12 +660,10 @@ const resetLocalStorage = () => {
   localStorage.removeItem('selectedChessPieceSet')
   localStorage.removeItem('selectedChessBoardImage')
 
-  // Optionally reset the board and other states
-  chess.value.reset() // Reset the chess game state
-  moveHistory.value = [] // Clear move history
-  setPositionFromFEN('rnb1k2r/ppppqpPp/5n2/2b1b3/2B1P3/5N2/PPPP1PpP/RNBQK2R w KQkq - 6 5') // Reset to initial position
+  chess.value.reset()
+  moveHistory.value = []
+  setPositionFromFEN(initialFEN.value)
 
-  // Reset UI states if needed
   selectedCell.value = null
   highlightedSquares.value = {}
   legalMovesHighlight.value = {}
@@ -706,7 +709,7 @@ watch(selectedChessBoardImage, (newChessBoardImage) => {
 })
 
 // Initial Board Position
-setPositionFromFEN('6k1/5pp1/2R4p/1PR5/8/6P1/1PPr1r1P/6K1 b - - 0 28')
+setPositionFromFEN(initialFEN.value)
 </script>
 
 <style scoped>

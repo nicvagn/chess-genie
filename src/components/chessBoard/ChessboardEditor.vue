@@ -55,6 +55,7 @@
         />
         <button
           class="text-gray-600 border my-1 ml-3 border-gray-600 focus:outline-none font-medium rounded-sm text-sm w-10"
+          @click="loadFEN"
         >
           load
         </button>
@@ -101,9 +102,16 @@
 
 <script setup>
 import { SQUARES } from 'chess.js'
-import { computed, ref } from 'vue'
+import { computed, defineEmits, ref } from 'vue'
 
-const pieces = ref(['bP', 'bR', 'bN', 'bB', 'bQ', 'bK', 'wP', 'wR', 'wN', 'wB', 'wQ', 'wK'])
+const pieces = ref(['bP', 'bR', 'bN', 'bB', 'bQ', 'bK', 'wK', 'wQ', 'wB', 'wN', 'wR', 'wP'])
+
+const emits = defineEmits(['loadFEN'])
+
+const loadFEN = () => {
+  // Emit the generated FEN value to the parent
+  emits('loadFEN', generateFEN.value)
+}
 
 const boardState = ref({})
 const chessBoardSquares = SQUARES
