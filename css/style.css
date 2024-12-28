@@ -82,7 +82,8 @@ body {
 
 .file-labels {
   display: flex;
-  position: absolute;
+  position: relative;
+  text-align: center;
   align-items: center;
   flex-direction: row;
   justify-content: center;
@@ -93,13 +94,9 @@ body {
 
 .rank-labels {
   display: flex;
-  position: absolute;
-  align-items: center;
+  margin: 0 0.5em;
+  float: left;
   flex-direction: column;
-  justify-content: center;
-  left: 32.2%;
-  top: 50%;
-  transform: translate(50%, -50%);
 }
 
 .rank-labels div {
