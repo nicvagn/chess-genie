@@ -14,7 +14,12 @@ const chess_board_table = [["a8", "b8", "c8", "d8", "e8","f8", "g8","h8"],
 /** Take a coordinate based (x,y) square and return the algabraic square */
 function coordinate_to_SAN(coords)
 {
-    // TODO
+    let x_coord = coords[0]
+    let y_coord = coords[1]
+
+    let SAN = chess_board_table[x_coord][y_coord]
+    console.log(SAN)
+    return SAN
 }
 
 function fens_to_SAN(initial_fen, result_fen)
@@ -37,7 +42,10 @@ function fens_to_SAN(initial_fen, result_fen)
 	// undo the incorrect move
 	chess.undo()
     }
-    console.error("No move parsed from initial fen " + initial_fen + " and result fen " + result_fen)
+    console.error("No move parsed from initial fen " +
+		  initial_fen +
+		  " and result fen "
+		  + result_fen)
 }
 
 
@@ -46,3 +54,5 @@ chess.move("e4")
 let result_fen = chess.fen()
 let m = fens_to_SAN(initial_fen, result_fen)
 console.log(m)
+
+console.log(coordinate_to_SAN([0,0]))
